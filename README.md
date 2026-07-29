@@ -15,7 +15,7 @@ This software is experimental. Use only synthetic submissions in the current pil
 Install the deterministic CLI from this repository:
 
 ```bash
-npm install --global git+https://github.com/NeurIPS2026-AIDaR/submission-kit.git
+npm install --global https://github.com/NeurIPS2026-AIDaR/submission-kit/archive/refs/heads/main.tar.gz
 ```
 
 Check any local project. The project does not need a prescribed layout:

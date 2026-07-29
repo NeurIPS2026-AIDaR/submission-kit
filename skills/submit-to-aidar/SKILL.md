@@ -10,7 +10,7 @@ Use the deterministic `aidar` CLI for all privacy-critical work. Never implement
 ## Prepare or check
 
 1. Resolve the project path from the request. Ask for it only if it is missing.
-2. Confirm that `aidar` is on `PATH`. In the AIDaR source repository, use `npm run aidar --` if the installed command is absent. Otherwise, tell the author that the deterministic client is required and offer `npm install --global git+https://github.com/NeurIPS2026-AIDaR/submission-kit.git`. Do not install it unless the author approves the installation.
+2. Confirm that `aidar` is on `PATH`. In the AIDaR source repository, use `npm run aidar --` if the installed command is absent. Otherwise, tell the author that the deterministic client is required and offer `npm install --global https://github.com/NeurIPS2026-AIDaR/submission-kit/archive/refs/heads/main.tar.gz`. Do not install it unless the author approves the installation.
 3. Run `aidar check PATH`. When the client has a terminal, it uses one focused privacy prompt. It shows locally detected default identity terms and accepts optional comma-separated terms. Do not add a general author questionnaire.
 4. Show the complete validation and redaction summary. The summary contains counts, never the original private terms.
 5. Stop if any `FAIL` result exists. Explain the file and rule. An unsupported binary warning means the client did not claim that file clean; make sure the author sees it.
