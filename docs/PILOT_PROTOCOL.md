@@ -9,17 +9,17 @@ Test whether a GitHub workflow can address the concerns in the workshop discussi
 | Concern | Pilot response | Evidence to collect |
 |---|---|---|
 | “AI-ready” must not impose one research layout | Accept arbitrary regular-file contents; enforce only safety, privacy, and operational gates | Validation results and reviewer ratings of artifact navigation |
-| A new requirement can reduce submissions | The author runs one self-service skill or CLI command, answers at most one focused privacy prompt, and needs no chair action or GitHub account | Time to prepare, number of manual steps, and failure rate |
+| A new requirement can reduce submissions | The author runs one self-service skill, supplies the project path and OpenReview forum URL, and needs no chair action or GitHub account | Time to prepare, number of manual steps, and failure rate |
 | Review must preserve anonymity | Create and verify a deterministic redacted snapshot; the App creates an opaque private repository and all author actions use the bot identity | Redaction tests, identity-leak tests, commit inspection, and reviewer guess survey |
 | GitHub can be mandatory only after acceptance | The pilot tests a private GitHub representation during review and a separate public transition after acceptance | Compare review usefulness before and after access to structured artifacts |
-| Chairs need quality and consistency | Local and server checks use the same schema and deterministic package | Rule failures, warnings, and chair correction time |
+| Chairs need quality and consistency | Local and server checks apply the same safety rules without requiring a research layout | Rule failures, warnings, and chair correction time |
 | OpenReview remains the official workflow | Run the GitHub review in parallel and keep decision authority in OpenReview | Reviewer comparison survey and reconciliation log |
 
 ## Local stages
 
 1. Run all automated tests.
-2. Run `npm run test:pilot` in mock mode.
-3. Run the API, the self-service author CLI, and the administrator CLI as separate processes.
+2. Run `cargo test --locked` and start `aidar-server` in mock mode.
+3. Run the API, the standalone author client, and the administrator client as separate processes.
 4. Use two anonymous fixture packages and two reviewer identities.
 5. Confirm that each reviewer can access only the assigned package in the mock model.
 6. Add one formal review, one inline comment, and one general comment.
@@ -34,7 +34,7 @@ Test whether a GitHub workflow can address the concerns in the workshop discussi
 1. Use a test GitHub organization and test App.
 2. Complete every check in `docs/GITHUB_SETUP.md`.
 3. Use one chair account and two known reviewer accounts.
-4. Submit two fixtures without any author GitHub credential.
+4. Submit two fixtures with distinct OpenReview forum URLs and without any author GitHub credential.
 5. Test cross-repository access with both reviewer accounts.
 6. Inspect commit authorship, commit metadata, branch contents, App identity, and Actions state.
 7. Complete the author response and replacement revision loop.

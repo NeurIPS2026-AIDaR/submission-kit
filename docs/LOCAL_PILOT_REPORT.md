@@ -1,7 +1,7 @@
 # AIDaR GitHub-native submission local pilot report
 
 - **Date:** July 29, 2026
-- **Result:** Local pilot, prior one-repository live loop, and new-organization initial submission passed
+- **Result:** Local pilot, standalone-client HTTP loop, prior one-repository live loop, and new-organization initial submission passed
 - **Adoption status:** Not ready for workshop use
 
 ## Purpose
@@ -12,18 +12,20 @@ This pilot tests a private GitHub review process next to OpenReview. It does not
 
 The pilot includes the author client, the administrator client, the API, the package checks, local deterministic redaction, SQLite storage, and GitHub interfaces. The local test uses a mock GitHub service. A prior live test used a personal throwaway organization. The current live test uses the `NeurIPS2026-AIDaR` organization and its organization-owned App.
 
-The pilot does not include OpenReview integration. It does not include automatic claim extraction. It does not run submitted code.
+The pilot records one OpenReview forum URL for each submission. It does not synchronize OpenReview reviews or decisions. It does not include automatic claim extraction. It does not run submitted code.
 
 ## Observed results
 
 | Test | Result |
 |---|---|
-| Automated unit and integration tests | PASS, 29 tests |
+| Rust client and server tests | PASS, 6 tests |
+| Rust client, server, and administrator release build | PASS |
+| Complete Rust HTTP submission and review loop | PASS |
 | Arbitrary non-empty regular-file submission | PASS |
 | Stable redaction aliases across revisions | PASS |
 | Local-only identity file and redaction profile | PASS |
-| Global CLI package installation | PASS |
 | Self-service submission registration without chair action | PASS |
+| Unique OpenReview forum URL gate | PASS |
 | Two isolated private submission models | PASS |
 | Author submission without a GitHub credential | PASS |
 | Opaque repository names | PASS |
@@ -35,6 +37,7 @@ The pilot does not include OpenReview integration. It does not include automatic
 | Deletion of a removed file in revision 2 | PASS |
 | Cross-submission reviewer isolation | PASS |
 | Actual HTTP API and both CLIs | PASS |
+| Standalone client status, review, response, and revision loop | PASS |
 | Deterministic package digest | PASS |
 | Hostile archive and anonymity checks | PASS |
 | Private repository creation with the GitHub App | PASS |
@@ -48,6 +51,10 @@ The pilot does not include OpenReview integration. It does not include automatic
 | Cross-repository isolation on live GitHub | NOT TESTED |
 
 The HTTP test completed one initial submission, one reviewer assignment, one inline comment, one author response, and one revision. The local test database and temporary package data were deleted after the test.
+
+The standalone Apple Silicon client completed the same author loop through the HTTP API. It used only a project path and OpenReview forum URL for the initial submission. It saved its credential in owner-only local files, read an inline review, posted one response through the bot, and submitted revision 2. A second client state could not create a submission with the same normalized OpenReview forum URL.
+
+The clean Rust cutover repeated this loop with the compiled Rust server and compiled Rust administrator client. The service created its current schema directly. It stored only the author-token HMAC, kept the OpenReview URL in the administrator view, and used owner-only permissions for the database and local author credential.
 
 The prior live test completed the full review, response, and revision loop in a personal throwaway organization. The App created the repository, disabled Actions, made the submission commits, opened the pull request, relayed one named review, posted the anonymous author response, and replaced revision 1 with revision 2. A file removed from the source did not remain in revision 2. No raw author token was present in the test database.
 
@@ -77,17 +84,17 @@ The private package exists before the decision. Reviewers can inspect it during 
 
 ### Quality and consistency
 
-The client and server use the same schema and checks. The server does not trust the client result. It extracts the archive into a new private directory and repeats the checks.
+The client and server apply the same safety checks. They do not require a research layout. The server does not trust the client result. It parses the archive into memory and repeats the checks.
 
 ### OpenReview coexistence
 
-OpenReview can remain the official submission and decision system. GitHub can provide the artifact view and the parallel review record. The MVP does not synchronize the two systems.
+OpenReview can remain the official submission and decision system. GitHub can provide the artifact view and the parallel review record. A new AIDaR submission requires one unused OpenReview forum URL. The service keeps this URL outside the anonymous repository. The MVP does not synchronize the two systems.
 
 ## Important limits
 
 The live result proves the main App operations for one private repository. It does not prove the reviewer permission boundary. A second live run needs two reviewer accounts that are not organization owners. Each reviewer must have access to only one submission repository.
 
-The metadata check is not complete for images and Office files. Unsupported binaries are warned and are not claimed clean. The client checks PDF author metadata and extracted text but does not rewrite PDF files. Authors must inspect every final file and warning.
+The client keeps PDFs, images, Office files, archives, and other binary files unchanged. It warns that it did not inspect them. Authors must inspect every final file and warning.
 
 SQLite is suitable for one pilot process. It is not the final database for a multi-process service. A live GitHub failure can leave a partial private repository that needs operator repair.
 
