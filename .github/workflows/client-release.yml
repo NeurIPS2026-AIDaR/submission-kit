@@ -1,0 +1,76 @@
+name: Standalone client
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["client-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            asset: aidar-aarch64-apple-darwin.tar.gz
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            asset: aidar-x86_64-apple-darwin.tar.gz
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            asset: aidar-x86_64-unknown-linux-gnu.tar.gz
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset: aidar-aarch64-unknown-linux-gnu.tar.gz
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            asset: aidar-x86_64-pc-windows-msvc.zip
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - run: rustup target add ${{ matrix.target }}
+      - run: cargo test --locked --manifest-path client/Cargo.toml --target ${{ matrix.target }}
+      - run: cargo build --locked --release --manifest-path client/Cargo.toml --target ${{ matrix.target }}
+      - name: Package Unix client
+        if: runner.os != 'Windows'
+        run: |
+          mkdir release
+          cp client/target/${{ matrix.target }}/release/aidar release/aidar
+          tar -C release -czf ${{ matrix.asset }} aidar
+      - name: Package Windows client
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory release
+          Copy-Item client/target/${{ matrix.target }}/release/aidar.exe release/aidar.exe
+          Compress-Archive -Path release/aidar.exe -DestinationPath ${{ matrix.asset }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/client-v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create checksums
+        run: cd artifacts && sha256sum aidar-* > SHA256SUMS
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" artifacts/* --generate-notes --title "AIDaR client $GITHUB_REF_NAME"

@@ -93,11 +93,22 @@ describe("private review loop", () => {
   it("keeps private repository coordinates out of the author API", async () => {
     const { config, service } = harness();
     const app = await buildApi(service, config);
-    const registration = await app.inject({ method: "POST", url: "/v1/author/submissions" });
+    const registration = await app.inject({
+      method: "POST",
+      url: "/v1/author/submissions",
+      payload: { openreview_url: "https://openreview.net/forum?id=API_TEST_001" }
+    });
     expect(registration.statusCode).toBe(200);
     const slot = registration.json() as { submission_id: string; author_token: string };
     expect(slot.submission_id).toMatch(/^[0-9a-f]{12}$/);
     expect(slot.author_token).toMatch(/^aidar_sub_/);
+    const duplicate = await app.inject({
+      method: "POST",
+      url: "/v1/author/submissions",
+      payload: { openreview_url: "https://openreview.net/forum?id=API_TEST_001#discussion" }
+    });
+    expect(duplicate.statusCode).toBe(400);
+    expect(duplicate.json()).toMatchObject({ error: expect.stringContaining("already has") });
     const packaged = await packageProject(resolve("test/fixtures/valid-submission"), { privacyStoreDirectory: join(config.tempRoot, "privacy"), tempRoot: config.tempRoot });
     await service.submit(slot.author_token, packaged.archive, packaged.digest, "api-key");
     const response = await app.inject({ method: "GET", url: "/v1/author/status", headers: { authorization: `Bearer ${slot.author_token}` } });

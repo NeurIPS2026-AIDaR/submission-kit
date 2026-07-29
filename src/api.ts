@@ -55,7 +55,9 @@ export async function buildApi(service: AIDaRService, config: AppConfig): Promis
 
   app.get("/health", async () => ({ status: "ok", github_mode: config.githubMode }));
 
-  app.post("/v1/author/submissions", async () => service.createSubmission(undefined, "self_service"));
+  app.post<{ Body: { openreview_url?: string } }>("/v1/author/submissions", async (request) => {
+    return service.createSelfServiceSubmission(request.body?.openreview_url ?? "");
+  });
 
   app.post("/v1/author/submit", async (request) => {
     const token = authorToken(request);

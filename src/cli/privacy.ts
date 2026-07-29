@@ -3,7 +3,6 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSyn
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
-import { credentialDirectory } from "./credentials.js";
 import type { RedactionProfile } from "../redaction.js";
 
 interface StoredProfile {
@@ -15,6 +14,13 @@ interface StoredProfile {
 interface PrivacyFile {
   version: 1;
   projects: StoredProfile[];
+}
+
+function credentialDirectory(override?: string): string {
+  if (override) return resolve(override);
+  if (process.env.AIDAR_CREDENTIALS_DIR) return resolve(process.env.AIDAR_CREDENTIALS_DIR);
+  const configRoot = process.env.XDG_CONFIG_HOME ? resolve(process.env.XDG_CONFIG_HOME) : join(homedir(), ".config");
+  return join(configRoot, "aidar");
 }
 
 function privacyPath(directory?: string): string {

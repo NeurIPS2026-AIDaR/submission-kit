@@ -87,6 +87,15 @@ describe("package validation", () => {
     expect(result.report.findings).toContainEqual(expect.objectContaining({ level: "WARN", rule: "unsupported_binary", path: "opaque.bin" }));
   });
 
+  it("allows a nested archive as an opaque artifact", () => {
+    const root = copyFixture();
+    writeFileSync(join(root, "results.zip"), Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00]));
+    const result = validateProject(root, { limits: DEFAULT_LIMITS, identityTerms: [] });
+    expect(result.report.valid).toBe(true);
+    expect(result.files).toContain("results.zip");
+    expect(result.unsupportedBinaryFiles).toContain("results.zip");
+  });
+
   it("rejects unredacted privacy patterns in server mode", () => {
     const root = copyFixture();
     writeFileSync(join(root, "README.md"), "Contact person@example.org\n");

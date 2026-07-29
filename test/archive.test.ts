@@ -44,6 +44,14 @@ describe("deterministic and safe archives", () => {
     await expect(safeExtractArchive(await maliciousArchive(name), root, DEFAULT_LIMITS)).rejects.toThrow();
   });
 
+  it("accepts an archive file as an ordinary artifact", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aidar-extract-test-"));
+    roots.push(root);
+    const files = await safeExtractArchive(await maliciousArchive("artifacts/results.zip"), root, DEFAULT_LIMITS);
+    expect(files).toContain("artifacts/results.zip");
+    expect(readFileSync(join(root, "artifacts/results.zip"), "utf8")).toBe("bad");
+  });
+
   it("extracts the valid deterministic package", async () => {
     const privacy = mkdtempSync(join(tmpdir(), "aidar-privacy-test-"));
     roots.push(privacy);

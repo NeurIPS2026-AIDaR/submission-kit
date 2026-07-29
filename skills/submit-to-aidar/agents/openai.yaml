@@ -1,4 +1,4 @@
 interface:
   display_name: "AIDaR Submission"
-  short_description: "Redact and submit an AIDaR research snapshot"
-  default_prompt: "Use $submit-to-aidar to check, redact, and submit my local research project."
+  short_description: "Submit any research project to AIDaR"
+  default_prompt: "Use $submit-to-aidar to submit my local project."

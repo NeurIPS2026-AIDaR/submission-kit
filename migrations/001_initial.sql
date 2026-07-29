@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS submissions (
   updated_at TEXT NOT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS submissions_external_id_unique
+ON submissions(external_id) WHERE external_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS reviewers (
   submission_id TEXT NOT NULL,
   github_login TEXT NOT NULL,

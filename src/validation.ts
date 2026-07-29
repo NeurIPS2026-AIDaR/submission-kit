@@ -1,17 +1,16 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync,
   readdirSync, realpathSync, statSync
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, extname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { looksLikeText } from "./redaction.js";
 import type { Finding, Limits, ValidationReport } from "./types.js";
 
 const PRIVATE_IDENTITIES = ".aidar-private-identities.txt";
 const CLIENT_EXCLUDES = new Set([".git", PRIVATE_IDENTITIES]);
 const FORBIDDEN_PARTS = new Set([".hg", ".svn"]);
-const ARCHIVE_EXTENSIONS = new Set([".zip", ".tar", ".tgz", ".gz", ".bz2", ".xz", ".7z", ".rar"]);
 export interface ValidationOptions {
   limits: Limits;
   tempRoot?: string;
@@ -41,34 +40,6 @@ function readIdentityTerms(root: string): string[] {
   const file = join(root, PRIVATE_IDENTITIES);
   if (!existsSync(file)) return [];
   return readFileSync(file, "utf8").split(/\r?\n/).map((term) => term.trim()).filter((term) => term && !term.startsWith("#"));
-}
-
-function privacySignal(text: string, identityTerms: string[]): string | undefined {
-  if (identityTerms.some((term) => text.toLocaleLowerCase().includes(term.toLocaleLowerCase()))) return "configured identity term";
-  if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(text)) return "email address";
-  if (/\b\d{4}-\d{4}-\d{4}-\d{3}[\dX]\b/i.test(text)) return "ORCID-like identifier";
-  if (/(?:\/Users\/|\/home\/|[A-Z]:\\Users\\)[^\s/\\]+/i.test(text)) return "absolute user home path";
-  return undefined;
-}
-
-function inspectPdf(fullPath: string, relativePath: string, identityTerms: string[], findings: Finding[], unsupported: string[]): void {
-  try {
-    const output = execFileSync("pdfinfo", [fullPath], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    const author = /^Author:\s*(.+)$/im.exec(output)?.[1]?.trim();
-    if (author) findings.push({ level: "FAIL", rule: "pdf_author_metadata", path: relativePath, message: "PDF author metadata is not empty" });
-    else findings.push({ level: "PASS", rule: "pdf_author_metadata", path: relativePath, message: "PDF author metadata is empty" });
-  } catch {
-    findings.push({ level: "FAIL", rule: "valid_pdf", path: relativePath, message: "The manuscript PDF is not valid or pdfinfo could not inspect it" });
-    return;
-  }
-  try {
-    const text = execFileSync("pdftotext", [fullPath, "-"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    if (privacySignal(text, identityTerms)) findings.push({ level: "FAIL", rule: "pdf_privacy_content", path: relativePath, message: "A privacy term was found in PDF text; this client cannot safely rewrite PDF content" });
-    else findings.push({ level: "PASS", rule: "pdf_text_privacy", path: relativePath, message: "Extracted PDF text passed supported privacy checks" });
-  } catch {
-    unsupported.push(relativePath);
-    findings.push({ level: "WARN", rule: "pdf_text_uninspected", path: relativePath, message: "PDF text could not be inspected; the file is not claimed clean" });
-  }
 }
 
 function scanText(text: string, path: string, identityTerms: string[], findings: Finding[], mode: "redact" | "reject" | "relay"): void {
@@ -168,7 +139,6 @@ export function validateProject(inputPath: string, options: ValidationOptions): 
       const collision = collisionKeys.get(collisionKey);
       if (collision && collision !== rel) findings.push({ level: "FAIL", rule: "path_collision", path: rel, message: "Path has a case or Unicode collision" });
       collisionKeys.set(collisionKey, rel);
-      if (ARCHIVE_EXTENSIONS.has(extname(rel).toLowerCase())) findings.push({ level: "FAIL", rule: "nested_archive", path: rel, message: "Nested archives are prohibited" });
     }
   }
 
@@ -181,10 +151,9 @@ export function validateProject(inputPath: string, options: ValidationOptions): 
     const fullPath = join(root, rel);
     const data = readFileSync(fullPath);
     if (looksLikeText(rel, data)) scanText(data.toString("utf8"), rel, identityTerms, findings, options.serverMode ? "reject" : "redact");
-    else if (extname(rel).toLowerCase() === ".pdf") inspectPdf(fullPath, rel, identityTerms, findings, unsupportedBinaryFiles);
     else {
       unsupportedBinaryFiles.push(rel);
-      findings.push({ level: "WARN", rule: "unsupported_binary", path: rel, message: "Binary content could not be privacy-inspected or redacted; the file is not claimed clean" });
+      findings.push({ level: "WARN", rule: "unsupported_binary", path: rel, message: "Binary content is kept unchanged; inspect it before submission" });
     }
   }
 

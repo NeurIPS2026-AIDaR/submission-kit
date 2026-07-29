@@ -6,6 +6,7 @@ import type { AIDaRDatabase } from "./database.js";
 import { safeExtractArchive, snapshotDirectory } from "./archive.js";
 import { createSubmissionToken, sha256, tokenHmac } from "./security.js";
 import { stageValidatedProject, validateProject, validateRelayText } from "./validation.js";
+import { normalizeOpenReviewUrl } from "./openreview.js";
 import type { GithubGateway, ReviewItem, SubmissionRecord } from "./types.js";
 
 export class AIDaRService {
@@ -25,6 +26,18 @@ export class AIDaRService {
     `).run(id, externalId ?? null, tokenHmac(token, this.config.tokenHmacSecret), now, now);
     this.event(id, "submission_created", actor);
     return { submission_id: id, author_token: token, status: "awaiting_submission" };
+  }
+
+  createSelfServiceSubmission(openReviewUrl: string): { submission_id: string; author_token: string; status: string } {
+    const normalized = normalizeOpenReviewUrl(openReviewUrl);
+    try {
+      return this.createSubmission(normalized, "self_service");
+    } catch (error) {
+      if (error instanceof Error && /UNIQUE constraint failed: submissions\.external_id/.test(error.message)) {
+        throw new Error("This OpenReview forum URL already has an AIDaR submission; use the saved credential to revise it");
+      }
+      throw error;
+    }
   }
 
   authenticateAuthor(token: string): SubmissionRecord {

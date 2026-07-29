@@ -1,5 +1,5 @@
 {
-  "name": "aidar-submission-system",
+  "name": "aidar-server",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -11,21 +11,11 @@
   "engines": {
     "node": ">=22.13"
   },
-  "bin": {
-    "aidar": "bin/aidar.js",
-    "aidar-admin": "bin/aidar-admin.js"
-  },
-  "files": [
-    "bin",
-    "migrations",
-    "src"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/src/server.js",
     "dev": "node --import tsx src/server.ts",
-    "aidar": "node --import tsx src/cli/aidar.ts",
     "aidar-admin": "node --import tsx src/cli/aidar-admin.ts",
     "github-app:register": "node --import tsx scripts/register-github-app.ts",
     "live:configure": "node --import tsx scripts/configure-live.ts",
@@ -41,14 +31,12 @@
     "commander": "^14.0.0",
     "dotenv": "^17.2.1",
     "fastify": "^5.4.0",
-    "tar-stream": "^3.1.7",
-    "tsx": "^4.20.3",
-    "yaml": "^2.8.0",
-    "zod": "^4.0.14"
+    "tar-stream": "^3.1.7"
   },
   "devDependencies": {
     "@types/node": "^22.17.0",
     "@types/tar-stream": "^3.1.4",
+    "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

@@ -35,11 +35,12 @@ This is reviewer-facing author anonymity. It is not cryptographic anonymity.
 | Submitted workflows run code | Reject workflow files and disable Actions | A reviewer can run code on another system |
 | A secret enters the repository | Built-in patterns and optional `gitleaks`, repeated on the server | No scanner detects every secret |
 | Supported text or paths identify an author | Redact into a temporary snapshot with stable project-specific aliases, then verify matched originals are absent | Unlisted names and indirect clues can remain |
-| Metadata or opaque binary content identifies an author | Check PDF metadata and extracted text; explicitly warn for unsupported or uninspected binary formats | Visible image text and unsupported metadata can remain |
+| Metadata or opaque binary content identifies an author | Keep binary files unchanged and explicitly warn that they are uninspected | Binary metadata, visible text, and embedded content can identify an author |
 | Reviewer sees another paper | Use one private repository for each submission and narrow collaborator access | Organization owners can have broad access |
 | Author identity appears on GitHub | Author uses only an AIDaR token; App posts all author actions | GitHub and the operator can observe network metadata |
 | Token theft permits author actions | Use 32 random bytes, HMAC storage, one-submission scope, and revocation | The MVP has no device binding or rotation UI |
 | Duplicate request creates duplicate state | Require an idempotency key and package digest | A partial live GitHub failure can need operator repair |
+| Automated creation creates spam | Require one unique OpenReview forum URL for each new submission | The URL is not proof of ownership; public service rate limits are still required |
 | Upload exhausts resources | Limit compressed size, expanded size, file size, count, and path length | The MVP has no distributed denial-of-service layer |
 
 ## Data retention

@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   branch_head_sha TEXT, revision INTEGER NOT NULL DEFAULT 0, package_sha256 TEXT,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS submissions_external_id_unique
+ON submissions(external_id) WHERE external_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS reviewers (
   submission_id TEXT NOT NULL, github_login TEXT NOT NULL, state TEXT NOT NULL,
   invited_at TEXT, accepted_at TEXT, review_requested_at TEXT, removed_at TEXT,

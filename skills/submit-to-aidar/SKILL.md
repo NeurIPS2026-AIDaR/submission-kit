@@ -1,60 +1,62 @@
 ---
 name: submit-to-aidar
-description: Validate, redact, submit, revise, and inspect an AIDaR workshop research snapshot through the aidar CLI. Use when an author asks to submit local manuscript, code, data documentation, claims, results, or other artifacts to AIDaR; asks whether submission content is ready for anonymous review; asks to read AIDaR reviews; or asks to send a response or revision without a GitHub account.
+description: Submit, revise, check, or review an anonymous AIDaR research project. Use when an author wants to send any local project or research artifacts to AIDaR, update a submission, read reviews, or reply without using GitHub.
 ---
 
 # Submit to AIDaR
 
-Use the deterministic `aidar` CLI for all privacy-critical work. Never implement packaging, identity scanning, redaction, or upload logic in the prompt.
+Use the official standalone `aidar` client. Do not reimplement its checks or packaging.
 
-## Prepare or check
+## Get the client
 
-1. Resolve the project path from the request. Ask for it only if it is missing.
-2. Confirm that `aidar` is on `PATH`. In the AIDaR source repository, use `npm run aidar --` if the installed command is absent. Otherwise, tell the author that the deterministic client is required and offer `npm install --global https://github.com/NeurIPS2026-AIDaR/submission-kit/archive/refs/heads/main.tar.gz`. Do not install it unless the author approves the installation.
-3. Run `aidar check PATH`. When the client has a terminal, it uses one focused privacy prompt. It shows locally detected default identity terms and accepts optional comma-separated terms. Do not add a general author questionnaire.
-4. Show the complete validation and redaction summary. The summary contains counts, never the original private terms.
-5. Stop if any `FAIL` result exists. Explain the file and rule. An unsupported binary warning means the client did not claim that file clean; make sure the author sees it.
-6. Do not require `aidar.yaml`, `README.md`, a manuscript, a PDF, or a fixed directory structure. `aidar init PATH` is only an optional example layout.
+Use an existing official client if it is available. Otherwise:
+
+1. Get the latest `client-v*` release from `NeurIPS2026-AIDaR/submission-kit`.
+2. Select the asset for the operating system and processor.
+3. Download the asset and `SHA256SUMS` from that release.
+4. Verify the asset checksum. Stop if it does not match.
+5. Extract `aidar` to an owner-controlled directory outside the project and make it executable.
+
+The standalone client is the only author-side component. Do not ask the author to install a runtime, container system, Git, or a GitHub client.
+
+For local development before the first release, use `client/target/release/aidar` from this repository.
 
 ## Submit
 
-1. Require a successful check in the current run. The client creates a deterministic redacted temporary snapshot and never changes the source project.
-2. Get the AIDaR server URL from the request or `AIDAR_BASE_URL`.
-3. Run `aidar submit PATH --server URL` only when the request authorizes submission. This command creates a new self-service submission. It does not require chair action or an existing token.
-4. Let the CLI save the new author credential in its protected user configuration. Do not copy the credential into the project.
-5. Return the opaque submission ID, revision, digest, and status. Do not display the author credential.
-
-Each normal `aidar submit` command creates a new submission. To retry a failed upload, use `--submission SUBMISSION_ID`. For an older submission from the same project, use `--submission SUBMISSION_ID` with the review, response, status, or revision command.
-
-Never request or use a GitHub personal access token, OAuth grant, GitHub App user token, GitHub username, fork, or author repository URL.
-
-## Review and respond
-
-Use these commands:
+1. Resolve the project path. Ask for it only if the request does not identify it.
+2. Get the OpenReview forum URL. Ask only this question if it is missing: `What is the OpenReview forum URL for this submission?`
+3. Get the server from `AIDAR_BASE_URL`. Use `http://localhost:3000` for the local pilot if the variable is absent.
+4. Run `aidar check PATH`. Show all warnings. Stop on an error.
+5. If the author asked to submit, run:
 
 ```bash
-aidar status --server URL --project PATH
-aidar reviews --server URL --project PATH
-aidar respond --server URL --project PATH --file response.md
-aidar respond --server URL --project PATH --file response.md --reply-to COMMENT_ID
+aidar submit PATH --server URL --openreview OPENREVIEW_URL
 ```
 
-Inspect the response file for author identity before posting. The AIDaR bot publishes the response under its bot identity.
+6. Return the submission ID, revision, digest, and status. Do not show or copy the saved author credential.
 
-## Revise
+Do not ask what types of artifacts are present. Do not require a PDF, manifest, README, fixed directory layout, Git repository, or GitHub account. The client submits the regular files that the author placed in the project.
 
-1. Run `aidar check PATH` again. The owner-only redaction profile keeps replacements stable for the same project across revisions.
-2. Stop on any failure.
-3. Run `aidar revise PATH --server URL`.
-4. Explain that a revision is a complete replacement snapshot. Files removed locally are removed from the GitHub review branch.
-5. Return the new revision, package digest, and status.
+## Continue the review
 
-## Privacy rules
+Use the project path so the client can find its saved credential:
 
-- Never upload `.git/`, other version-control metadata, `.github/workflows/`, or `.aidar-private-identities.txt`.
-- Never display or log the author token. Let only the CLI store credentials and redaction profiles in owner-only files outside the project.
-- Never include original identity terms or mappings in a report, archive, issue, response, or chat message. The focused local terminal prompt is the only place detected terms may be shown.
-- Do not claim cryptographic anonymity. State that GitHub, chairs, and the operator are inside the trust boundary.
-- Do not run submitted code, notebooks, builds, installers, containers, or workflows.
-- The CLI may replace supported text and path matches only in its temporary snapshot. It must verify the matched originals are absent before upload and report replacement counts without reporting the originals.
-- Treat warnings as items that the author must inspect, especially unsupported binary and partially inspected file formats, even when the CLI allows submission.
+```bash
+aidar revise PATH --server URL
+aidar status --server URL --project PATH
+aidar reviews --server URL --project PATH
+aidar respond --server URL --project PATH --file RESPONSE.md
+```
+
+A revision is a complete replacement snapshot. Run `aidar check PATH` before each revision. The client keeps redaction aliases stable across revisions.
+
+## Privacy
+
+- The client works on a temporary copy. It does not change the project.
+- It excludes version-control data, workflow files, and `.aidar-private-identities.txt`.
+- It redacts supported text patterns and stops on high-confidence secrets.
+- If `gitleaks` is installed, the client also runs it. Do not require it.
+- It keeps PDF and other binary files unchanged and warns the author to inspect them.
+- It never runs submitted code, builds, installers, containers, or workflows.
+- It stores the OpenReview URL only in the private service database. The anonymous GitHub repository does not contain the URL.
+- It does not provide cryptographic anonymity. Chairs, the service operator, OpenReview, and GitHub are inside the trust boundary.

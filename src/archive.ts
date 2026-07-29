@@ -1,13 +1,11 @@
 import { createHash } from "node:crypto";
 import { createReadStream, lstatSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, extname, isAbsolute, join, posix, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, posix, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import tar from "tar-stream";
 import type { Limits, SubmissionSnapshot } from "./types.js";
-
-const ARCHIVE_EXTENSIONS = new Set([".zip", ".tar", ".tgz", ".gz", ".bz2", ".xz", ".7z", ".rar"]);
 
 export async function createDeterministicArchive(root: string, files: string[]): Promise<{ buffer: Buffer; sha256: string }> {
   const pack = tar.pack();
@@ -68,7 +66,6 @@ export async function safeExtractArchive(buffer: Buffer, target: string, limits:
       const rel = safeArchivePath(header.name, limits);
       if (header.type !== "file") throw new Error("Archive contains a non-regular entry");
       if (prohibitedPackagePath(rel)) throw new Error("Archive contains a prohibited path");
-      if (ARCHIVE_EXTENSIONS.has(extname(rel).toLowerCase())) throw new Error("Archive contains a nested archive");
       if ((header.size ?? 0) > limits.maxFileBytes) throw new Error("Archive contains an oversized file");
       const key = rel.toLocaleLowerCase();
       if (collisions.has(key)) throw new Error("Archive contains duplicate or colliding paths");
