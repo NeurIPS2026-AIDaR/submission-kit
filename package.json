@@ -12,15 +12,16 @@
     "node": ">=22.13"
   },
   "bin": {
-    "aidar": "dist/src/cli/aidar.js",
-    "aidar-admin": "dist/src/cli/aidar-admin.js"
+    "aidar": "bin/aidar.js",
+    "aidar-admin": "bin/aidar-admin.js"
   },
   "files": [
-    "dist"
+    "bin",
+    "migrations",
+    "src"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepare": "npm run build",
     "check": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/src/server.js",
     "dev": "node --import tsx src/server.ts",
@@ -41,13 +42,13 @@
     "dotenv": "^17.2.1",
     "fastify": "^5.4.0",
     "tar-stream": "^3.1.7",
+    "tsx": "^4.20.3",
     "yaml": "^2.8.0",
     "zod": "^4.0.14"
   },
   "devDependencies": {
     "@types/node": "^22.17.0",
     "@types/tar-stream": "^3.1.4",
-    "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
