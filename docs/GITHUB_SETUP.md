@@ -18,14 +18,6 @@ Organization owners and enterprise administrators can have broad access. Include
 
 Create a GitHub App, such as `aidar-submission`.
 
-For a test organization, you can use the local manifest helper:
-
-```bash
-npm run github-app:register -- --org ORGANIZATION
-```
-
-Open the local URL that the command prints. Register the App, install it on the organization, and select only `submission-kit` at first. The helper stores the generated private key in `~/.config/aidar/github-apps/ORGANIZATION/` with owner-only access. It does not print the key.
-
 Do not enable user authorization. Webhooks are optional for this pilot.
 
 Set these repository permissions:
@@ -45,17 +37,7 @@ Install the App on the test organization. Record the App ID and installation ID.
 
 ## 3. Configure the service
 
-For a local pilot, the configuration helper creates an ignored `.env` file with strong random service credentials:
-
-```bash
-npm run live:configure -- \
-  --app-id APP_ID \
-  --installation-id INSTALLATION_ID \
-  --org ORGANIZATION \
-  --private-key ABSOLUTE_PRIVATE_KEY_PATH
-```
-
-The helper does not print the generated credentials. For a deployed service, use a managed secret store instead of a dotenv file.
+Copy `.env.example` to `.env`. Generate strong service credentials. For a deployed service, use a managed secret store instead of a dotenv file.
 
 Set these values:
 

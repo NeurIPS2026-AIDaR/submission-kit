@@ -2,46 +2,48 @@
 
 This document is for pilot administrators. Authors do not use these steps.
 
-## Server
-
-The pilot server requires Node.js 22.13 or later.
+## Build
 
 ```bash
-npm install
+cargo test --locked
+cargo build --locked --release
+```
+
+The build creates three executables:
+
+- `target/release/aidar` for authors;
+- `target/release/aidar-server` for the service;
+- `target/release/aidar-admin` for administrators.
+
+The executables do not require Rust at run time.
+
+## Run the service
+
+```bash
 cp .env.example .env
-npm run dev
+target/release/aidar-server
 ```
 
 Use `AIDAR_GITHUB_MODE=mock` for local tests. Use `AIDAR_GITHUB_MODE=live` only after you complete [GitHub App setup](GITHUB_SETUP.md).
 
-Run the test suite:
+The service creates the current SQLite schema when it starts. This pilot has no migration layer.
 
-```bash
-npm test
-npm run test:pilot
-```
+## Administrator commands
 
-## Administrator client
-
-The administrator client uses the server admin credential. Do not give this credential to authors or reviewers.
+The administrator client reads `AIDAR_BASE_URL` and `AIDAR_ADMIN_TOKEN` from `.env` or the process environment.
 
 ```text
-npm run aidar-admin -- status SUBMISSION_ID
-npm run aidar-admin -- assign-reviewer SUBMISSION_ID --github-login LOGIN
-npm run aidar-admin -- sync-reviewer SUBMISSION_ID --github-login LOGIN
-npm run aidar-admin -- remove-reviewer SUBMISSION_ID --github-login LOGIN
-npm run aidar-admin -- decision SUBMISSION_ID --value accepted|rejected
-npm run aidar-admin -- publish SUBMISSION_ID PATH --public-slug SLUG
-npm run aidar-admin -- revoke-token SUBMISSION_ID
+aidar-admin status SUBMISSION_ID
+aidar-admin assign-reviewer SUBMISSION_ID --github-login LOGIN
+aidar-admin sync-reviewer SUBMISSION_ID --github-login LOGIN
+aidar-admin remove-reviewer SUBMISSION_ID --github-login LOGIN
+aidar-admin decision SUBMISSION_ID --value accepted|rejected
+aidar-admin publish SUBMISSION_ID PATH --public-slug SLUG
+aidar-admin revoke-token SUBMISSION_ID
 ```
 
-## Author client build
+Do not give the administrator token to authors or reviewers.
 
-The standalone client source is in `client/`.
+## Releases
 
-```bash
-cargo test --manifest-path client/Cargo.toml
-cargo build --release --manifest-path client/Cargo.toml
-```
-
-Published releases contain a compiled client and SHA-256 checksums for each supported operating system and architecture. Linux releases use musl and do not require the host glibc version.
+Published releases contain compiled author clients and SHA-256 checksums. Linux author releases use musl and do not require the host glibc version.

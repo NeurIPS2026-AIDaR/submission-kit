@@ -18,9 +18,9 @@ The pilot records one OpenReview forum URL for each submission. It does not sync
 
 | Test | Result |
 |---|---|
-| Server unit and integration tests | PASS, 36 tests |
-| Standalone Rust client tests | PASS, 2 tests |
-| Native Apple Silicon release build | PASS |
+| Rust client and server tests | PASS, 6 tests |
+| Rust client, server, and administrator release build | PASS |
+| Complete Rust HTTP submission and review loop | PASS |
 | Arbitrary non-empty regular-file submission | PASS |
 | Stable redaction aliases across revisions | PASS |
 | Local-only identity file and redaction profile | PASS |
@@ -54,6 +54,8 @@ The HTTP test completed one initial submission, one reviewer assignment, one inl
 
 The standalone Apple Silicon client completed the same author loop through the HTTP API. It used only a project path and OpenReview forum URL for the initial submission. It saved its credential in owner-only local files, read an inline review, posted one response through the bot, and submitted revision 2. A second client state could not create a submission with the same normalized OpenReview forum URL.
 
+The clean Rust cutover repeated this loop with the compiled Rust server and compiled Rust administrator client. The service created its current schema directly. It stored only the author-token HMAC, kept the OpenReview URL in the administrator view, and used owner-only permissions for the database and local author credential.
+
 The prior live test completed the full review, response, and revision loop in a personal throwaway organization. The App created the repository, disabled Actions, made the submission commits, opened the pull request, relayed one named review, posted the anonymous author response, and replaced revision 1 with revision 2. A file removed from the source did not remain in revision 2. No raw author token was present in the test database.
 
 The new-organization test created private synthetic repository [`NeurIPS2026-AIDaR/submission-fff5fee24d11`](https://github.com/NeurIPS2026-AIDaR/submission-fff5fee24d11) and [pull request 1](https://github.com/NeurIPS2026-AIDaR/submission-fff5fee24d11/pull/1). The free-form source had no required manifest. The temporary snapshot replaced five fake identity signals. Inspection confirmed that the original fake name, email, ORCID, user-home path, and repository owner were absent from the review branch. The App bot owns the verified submission commit. The repository is private, and Actions are disabled.
@@ -82,7 +84,7 @@ The private package exists before the decision. Reviewers can inspect it during 
 
 ### Quality and consistency
 
-The client and server apply the same safety checks. They do not require a research layout. The server does not trust the client result. It extracts the archive into a new private directory and repeats the checks.
+The client and server apply the same safety checks. They do not require a research layout. The server does not trust the client result. It parses the archive into memory and repeats the checks.
 
 ### OpenReview coexistence
 

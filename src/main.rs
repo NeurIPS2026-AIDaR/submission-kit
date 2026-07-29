@@ -1,7 +1,3 @@
-mod api;
-mod package;
-mod store;
-
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -9,9 +5,9 @@ use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use serde_json::Value;
 
-use api::Api;
-use package::{package_project, validate_response};
-use store::{load_credential, save_credential};
+use aidar::api::Api;
+use aidar::package::{package_project, validate_response};
+use aidar::store::{load_credential, save_credential};
 
 #[derive(Parser)]
 #[command(name = "aidar", version, about = "Submit research artifacts to AIDaR")]

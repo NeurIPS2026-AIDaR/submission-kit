@@ -259,6 +259,17 @@ fn scan_secrets(value: &str, path: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn validate_server_text(value: &str, path: &str) -> Result<()> {
+    scan_secrets(value, path)?;
+    if privacy_patterns()
+        .iter()
+        .any(|pattern| pattern.regex.is_match(value))
+    {
+        bail!("Private identity text remains in {path}");
+    }
+    Ok(())
+}
+
 fn verify_no_original(value: &str, originals: &BTreeSet<String>) -> Result<()> {
     let folded = value.to_lowercase();
     if originals

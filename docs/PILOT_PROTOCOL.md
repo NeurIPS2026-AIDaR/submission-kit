@@ -18,7 +18,7 @@ Test whether a GitHub workflow can address the concerns in the workshop discussi
 ## Local stages
 
 1. Run all automated tests.
-2. Run `npm run test:pilot` in mock mode.
+2. Run `cargo test --locked` and start `aidar-server` in mock mode.
 3. Run the API, the standalone author client, and the administrator client as separate processes.
 4. Use two anonymous fixture packages and two reviewer identities.
 5. Confirm that each reviewer can access only the assigned package in the mock model.

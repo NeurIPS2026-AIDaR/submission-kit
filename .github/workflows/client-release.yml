@@ -43,20 +43,20 @@ jobs:
           sudo apt-get install --yes musl-tools
           echo "${{ matrix.linker_env }}=musl-gcc" >> "$GITHUB_ENV"
       - run: rustup target add ${{ matrix.target }}
-      - run: cargo test --locked --manifest-path client/Cargo.toml --target ${{ matrix.target }}
-      - run: cargo build --locked --release --manifest-path client/Cargo.toml --target ${{ matrix.target }}
+      - run: cargo test --locked --target ${{ matrix.target }}
+      - run: cargo build --locked --release --target ${{ matrix.target }}
       - name: Package Unix client
         if: runner.os != 'Windows'
         run: |
           mkdir release
-          cp client/target/${{ matrix.target }}/release/aidar release/aidar
+          cp target/${{ matrix.target }}/release/aidar release/aidar
           tar -C release -czf ${{ matrix.asset }} aidar
       - name: Package Windows client
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory release
-          Copy-Item client/target/${{ matrix.target }}/release/aidar.exe release/aidar.exe
+          Copy-Item target/${{ matrix.target }}/release/aidar.exe release/aidar.exe
           Compress-Archive -Path release/aidar.exe -DestinationPath ${{ matrix.asset }}
       - uses: actions/upload-artifact@v4
         with:

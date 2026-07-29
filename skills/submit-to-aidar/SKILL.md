@@ -19,7 +19,7 @@ Use an existing official client if it is available. Otherwise:
 
 The standalone client is the only author-side component. Do not ask the author to install a runtime, container system, Git, or a GitHub client.
 
-For local development before the first release, use `client/target/release/aidar` from this repository.
+For local development before the first release, use `target/release/aidar` from this repository.
 
 ## Submit
 
