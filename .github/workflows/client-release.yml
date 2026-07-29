@@ -23,17 +23,25 @@ jobs:
             target: x86_64-apple-darwin
             asset: aidar-x86_64-apple-darwin.tar.gz
           - runner: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            asset: aidar-x86_64-unknown-linux-gnu.tar.gz
+            target: x86_64-unknown-linux-musl
+            asset: aidar-x86_64-unknown-linux-musl.tar.gz
+            linker_env: CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER
           - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            asset: aidar-aarch64-unknown-linux-gnu.tar.gz
+            target: aarch64-unknown-linux-musl
+            asset: aidar-aarch64-unknown-linux-musl.tar.gz
+            linker_env: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER
           - runner: windows-2025
             target: x86_64-pc-windows-msvc
             asset: aidar-x86_64-pc-windows-msvc.zip
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
+      - name: Install musl compiler
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes musl-tools
+          echo "${{ matrix.linker_env }}=musl-gcc" >> "$GITHUB_ENV"
       - run: rustup target add ${{ matrix.target }}
       - run: cargo test --locked --manifest-path client/Cargo.toml --target ${{ matrix.target }}
       - run: cargo build --locked --release --manifest-path client/Cargo.toml --target ${{ matrix.target }}

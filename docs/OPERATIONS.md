@@ -44,4 +44,4 @@ cargo test --manifest-path client/Cargo.toml
 cargo build --release --manifest-path client/Cargo.toml
 ```
 
-Published releases contain a compiled client and SHA-256 checksums for each supported operating system and architecture.
+Published releases contain a compiled client and SHA-256 checksums for each supported operating system and architecture. Linux releases use musl and do not require the host glibc version.
