@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "claims": [
+    {
+      "id": "claim-1",
+      "statement": "The mean of the example values is 4.",
+      "evidence": ["results/metrics.json"],
+      "code": ["code/run_analysis.py"]
+    }
+  ]
+}

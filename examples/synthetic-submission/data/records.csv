@@ -1,0 +1,4 @@
+record_id,value,provenance
+R1,12,simulator-A
+R2,19,simulator-A
+R3,,
