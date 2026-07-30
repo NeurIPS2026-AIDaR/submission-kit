@@ -1,0 +1,131 @@
+\documentclass[10pt]{article}
+
+\usepackage[letterpaper,margin=1in]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{AIDaRBlue}{HTML}{155E75}
+\hypersetup{colorlinks=true,urlcolor=AIDaRBlue,linkcolor=AIDaRBlue}
+\setcounter{secnumdepth}{0}
+
+\newcommand{\systemurl}{\href{https://submityour.work}{submityour.work}}
+\newcommand{\workshopurl}{\href{https://aidar-workshop.github.io/2026/}{AIDaR workshop}}
+
+\title{\vspace{-3em}NeurIPS 2026 AIDaR Workshop: Submission and Review}
+\author{A. Sina Booeshaghi}
+\date{30 July 2026}
+
+\begin{document}
+
+\maketitle
+\begin{center}
+\fcolorbox{AIDaRBlue}{AIDaRBlue!6}{%
+\parbox{0.94\textwidth}{\small
+\textbf{Summary.} The NeurIPS 2026 AIDaR workshop asks how scientific data
+should be organized so models and agents can use it. To demonstrate this idea,
+we built the AI Data Readiness System (AIDaRS), a simple system for submitting
+and reviewing workshop projects. AIDaRS makes the workshop itself a practical
+test of AI-data-ready scientific review.}}
+\end{center}
+
+\section{Purpose}
+
+The \workshopurl{} is a NeurIPS 2026 workshop on data infrastructure and
+benchmarks for reliable scientific AI systems. The workshop brings together
+scientists and industry professionals who build scientific data systems and
+evaluate AI systems on scientific tasks. It asks how a scientific data
+ecosystem should be organized for models and agents, and how this organization
+affects how we do science.
+
+The same question applies to workshop submissions. A workshop about AI data
+readiness should make its own submissions ready for people, models, and agents.
+A PDF submission is important, but it is not the complete scientific record.
+Scientific review also requires code, data notes, analysis outputs, and a clear
+record of changes that a PDF often omits.
+
+We built AIDaRS, a machine-readable submission system that operates in parallel
+with OpenReview. AIDaRS connects three parts of the review process: the author's
+work; a submission system that includes a command-line tool, an AI skill, and a
+GitHub service hosted on \systemurl{}; and private GitHub repositories where
+reviewers inspect projects and record their reviews.
+
+\section{Submission}
+
+The AIDaRS submission process is anonymous and straightforward. Once an author
+submits their work through OpenReview, they or an AI agent runs the AIDaRS
+command-line tool or AI skill. The operator points to a project directory and
+supplies an OpenReview link. The tool prepares a private copy,
+removes Git history, performs common privacy-preserving checks, and
+reports files that require the author's attention before submission.
+
+The tool then submits the project through the AIDaRS service on \systemurl{}. The service
+runs the AIDaRS GitHub App, which creates an anonymous private repository in the
+\texttt{NeurIPS2026-AIDaR} organization and opens a pull request for review.
+The AIDaRS bot adds the project and later author responses to GitHub. The
+author does not need a GitHub account or token. This process keeps the author's
+GitHub identity private.
+
+The same AIDaRS tool supports versioned submission updates. An author can change the local project and submit a new version to the existing pull request. Review comments and project history stay in one place while the repository shows the current submission.
+Importantly, AIDaRS provides automatic checks for author anonymity, but---like
+OpenReview---it cannot guarantee the removal of all identity information from a
+project. Authors must inspect their final files before submission.
+
+\section{Review}
+
+The AIDaRS system lets reviewers inspect submissions and make specific scientific
+critiques through GitHub. Every reviewer uses a named GitHub account and joins
+the \texttt{NeurIPS2026-AIDaR} organization. Reviewers can inspect all private
+workshop submissions, and the organizing committee assigns reviewers to each
+project. Reviewers can also clone a project when they need to run or examine it
+locally.
+
+Reviewers work through familiar GitHub tools. They can submit a formal review,
+write a general comment, or comment on a specific line. Submitting authors retrieve these
+reviews through the same CLI or skill that they used to submit. An author can
+respond without entering GitHub; the AIDaRS bot posts the response to the pull
+request and preserves author anonymity.
+
+The GitHub workspace also makes controlled AI evaluation possible. The
+organizing committee can run trusted AI evaluation tools on a project and ask
+them to review its contents. This creates a practical path for testing whether a
+submission is organized well enough for models and agents to use.
+
+\section{Worked example}
+
+The live demonstration uses the private repository
+\href{https://github.com/NeurIPS2026-AIDaR/submission-fc04abb65d1e}{%
+\texttt{NeurIPS2026-AIDaR/submission-fc04abb65d1e}} and
+\href{https://github.com/NeurIPS2026-AIDaR/submission-fc04abb65d1e/pull/1}{its first pull request}.
+The example follows five steps:
+\begin{enumerate}
+  \item The author submits a paper to OpenReview and receives an OpenReview
+  link.
+  \item A person or their AI agent runs the AIDaRS CLI or skill with the project
+  directory and OpenReview link.
+  \item AIDaRS checks the project and creates the anonymous private repository
+  and pull request in the workshop organization.
+  \item The organizing committee assigns reviewers. Reviewers inspect the
+  repository and write named comments on the pull request.
+  \item The author retrieves the comments, updates the local project, and uses
+  AIDaRS to post a response and revision to the same pull request.
+\end{enumerate}
+
+\section{Conclusion}
+
+The AIDaRS review system connects infrastructure, tools, and review in one
+practical workflow. A person or AI agent uses the same simple tool to submit a
+project through \systemurl{}. The service turns the project into an anonymous,
+versioned GitHub submission. Reviewers use their normal GitHub identities and
+tools, while authors respond through AIDaRS. The system operates alongside
+OpenReview.
+
+This infrastructure makes the workshop itself a proof of its central claim.
+The workshop asks authors to explain how scientific work should be organized
+for models and agents. AIDaRS asks them to submit that work in a form that people,
+models, and agents can inspect during review. The resulting AIDaRS system shows
+the practical value of AI-data-ready research projects and can support a
+post-workshop study of future conference organization.
+
+\end{document}
