@@ -664,7 +664,53 @@
       .privacy { grid-template-columns: 1fr; gap: 18px; padding: 28px; }
       footer { flex-direction: column; }
     }
-  </style>
+  
+    /* --- NeurIPS 2026 AIDaR workshop theme ---------------------------------
+       Aligns this page with aidar-workshop.github.io: serif type, a single
+       teal accent, and hairline outlines in place of tinted, rounded panels.
+       Purely visual: no markup, ids, classes or behaviour are changed. */
+    :root {
+      --ink: #202124;
+      --muted: #5f6368;
+      --line: #d8dadd;
+      --wash: #f7f8f8;
+      --brand: #2f6f73;
+      --brand-dark: #26595c;
+      --brand-soft: #ffffff;
+      --brand-line: #d8dadd;
+      --required: #2f6f73;
+      --required-dark: #26595c;
+      --required-soft: #ffffff;
+      --required-line: #d8dadd;
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    }
+
+    /* Outlines rather than rounded, tinted, shadowed cards. */
+    .step,
+    .step-one,
+    .step-label,
+    .step-link,
+    .paths,
+    .path,
+    .agent-prompt,
+    .benefits li,
+    .browser-link,
+    .secondary-button,
+    .credential-panel,
+    .review-card {
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    /* Labels, controls and code keep the sans and mono faces. */
+    .step-label,
+    .step-link,
+    .benefits li,
+    .browser-link,
+    .secondary-button {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    </style>
 </head>
 <body>
   <div class="shell">
