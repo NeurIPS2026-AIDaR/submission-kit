@@ -24,6 +24,22 @@ test "$(stat -c %a "$OPENREVIEW_TOKEN")" = 600
 test "$(stat -c %U:%G "$OPENREVIEW_TOKEN")" = aidar:aidar
 runuser -u aidar -- test -r "$OPENREVIEW_TOKEN"
 
+if ! openreview_status=$(
+    {
+        printf 'header = "Authorization: Bearer '
+        tr -d '\r\n' < "$OPENREVIEW_TOKEN"
+        printf '"\n'
+    } | runuser -u aidar -- curl -sS -o /dev/null -w '%{http_code}' --config - \
+        'https://api2.openreview.net/notes?invitation=NeurIPS.cc%2F2026%2FWorkshop%2FAIDaR%2F-%2FSubmission&limit=1'
+); then
+    echo "OpenReview access preflight could not reach API 2." >&2
+    exit 1
+fi
+if [ "$openreview_status" != 200 ]; then
+    echo "OpenReview token preflight returned HTTP $openreview_status; expected 200." >&2
+    exit 1
+fi
+
 umask 077
 install -d -o aidar -g aidar -m 0700 /var/lib/aidar/backups
 install -d -o root -g root -m 0700 "$BACKUP"
