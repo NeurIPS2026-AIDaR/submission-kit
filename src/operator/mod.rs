@@ -3,13 +3,16 @@ mod config;
 mod database;
 mod github;
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::net::{IpAddr, SocketAddr};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail};
 use axum::Json;
 use axum::Router;
 use axum::body::Bytes;
-use axum::extract::{DefaultBodyLimit, Multipart, Path as AxumPath, State};
+use axum::extract::{ConnectInfo, DefaultBodyLimit, Multipart, Path as AxumPath, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
@@ -22,6 +25,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
+use tokio::sync::Semaphore;
 
 use self::archive::{extract_snapshot, sha256};
 use self::config::Config;
@@ -36,6 +40,35 @@ struct AppState {
     config: Config,
     database: Arc<Database>,
     github: Arc<dyn GithubGateway>,
+    rate_limiter: Arc<RateLimiter>,
+    upload_slots: Arc<Semaphore>,
+}
+
+struct RateLimiter {
+    windows: Mutex<HashMap<(String, IpAddr), (Instant, usize)>>,
+}
+
+impl RateLimiter {
+    fn new() -> Self {
+        Self {
+            windows: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn check(&self, bucket: &str, ip: IpAddr, limit: usize) -> Result<()> {
+        let now = Instant::now();
+        let mut windows = self.windows.lock().expect("rate limiter lock poisoned");
+        windows.retain(|_, (started, _)| now.duration_since(*started) < Duration::from_secs(60));
+        let entry = windows.entry((bucket.to_string(), ip)).or_insert((now, 0));
+        if now.duration_since(entry.0) >= Duration::from_secs(60) {
+            *entry = (now, 0);
+        }
+        if entry.1 >= limit {
+            bail!("Request rate limit reached; wait one minute and try again");
+        }
+        entry.1 += 1;
+        Ok(())
+    }
 }
 
 pub async fn serve() -> Result<()> {
@@ -49,6 +82,8 @@ pub async fn serve() -> Result<()> {
         config: config.clone(),
         database,
         github,
+        rate_limiter: Arc::new(RateLimiter::new()),
+        upload_slots: Arc::new(Semaphore::new(config.public_limits.max_concurrent_uploads)),
     };
     let app = Router::new()
         .route("/health", get(health))
@@ -74,6 +109,7 @@ pub async fn serve() -> Result<()> {
         )
         .route("/v1/admin/submissions/{id}/decision", post(decision))
         .route("/v1/admin/submissions/{id}/publish", post(publish))
+        .route("/v1/admin/invitations", post(create_invitation))
         .route("/v1/admin/submissions/{id}/mock-reviews", post(mock_review))
         .route(
             "/v1/admin/submissions/{id}/revoke-token",
@@ -95,9 +131,12 @@ pub async fn serve() -> Result<()> {
             "mock"
         }
     );
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown())
+    .await?;
     Ok(())
 }
 
@@ -135,9 +174,12 @@ where
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let message = format!("{:#}", self.0);
-        let status = if message.to_ascii_lowercase().contains("token")
-            || message.to_ascii_lowercase().contains("authorization")
-        {
+        let lower = message.to_ascii_lowercase();
+        let status = if lower.contains("rate limit") || lower.contains("upload capacity") {
+            StatusCode::TOO_MANY_REQUESTS
+        } else if lower.contains("invitation code") {
+            StatusCode::FORBIDDEN
+        } else if lower.contains("token") || lower.contains("authorization") {
             StatusCode::UNAUTHORIZED
         } else {
             StatusCode::BAD_REQUEST
@@ -150,26 +192,101 @@ async fn health(State(state): State<AppState>) -> Json<Value> {
     Json(json!({ "status": "ok", "github_mode": state.github.mode() }))
 }
 
+fn client_ip(peer: SocketAddr, headers: &HeaderMap) -> Result<IpAddr> {
+    if peer.ip().is_loopback()
+        && let Some(value) = headers.get("X-Forwarded-For")
+    {
+        let value = value.to_str().context("Client address header is invalid")?;
+        if value.contains(',') {
+            bail!("Client address header is invalid");
+        }
+        return value.parse().context("Client address header is invalid");
+    }
+    Ok(peer.ip())
+}
+
 #[derive(Deserialize)]
 struct Registration {
     openreview_url: Option<String>,
+    invitation_code: Option<String>,
 }
 
 async fn register_submission(
     State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     Json(input): Json<Registration>,
 ) -> Result<Json<Value>, AppError> {
+    state.rate_limiter.check(
+        "registration",
+        client_ip(peer, &headers)?,
+        state.config.public_limits.registrations_per_minute,
+    )?;
     let openreview = normalize_openreview(input.openreview_url.as_deref().unwrap_or(""))?;
+    let invitation = input.invitation_code.as_deref().unwrap_or("").trim();
+    if !invitation.starts_with("aidar_inv_") || invitation.len() > 128 {
+        return Err(anyhow!("Invitation code is invalid or has already been used").into());
+    }
+    let invitation_hmac = token_hmac(&state.config.token_hmac_secret, invitation);
     Ok(Json(create_submission(
         &state,
         Some(&openreview),
         "self_service",
+        Some(&invitation_hmac),
     )?))
 }
 
 #[derive(Deserialize)]
 struct AdminRegistration {
     external_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct InvitationInput {
+    label: Option<String>,
+}
+
+async fn create_invitation(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(input): Json<InvitationInput>,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&state, &headers)?;
+    let label = input
+        .label
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if label.is_some_and(|value| value.len() > 100 || value.chars().any(char::is_control)) {
+        return Err(anyhow!("Invitation label is invalid").into());
+    }
+    let mut bytes = [0_u8; 24];
+    rand::rng().fill(&mut bytes);
+    let code = format!(
+        "aidar_inv_{}",
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    );
+    let now = chrono::Utc::now();
+    let created_at = now.to_rfc3339();
+    let expires_at = (now + chrono::Duration::days(14)).to_rfc3339();
+    state.database.with(|connection| {
+        connection.execute(
+            "INSERT INTO invitations (code_hmac, label, created_at, expires_at) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                token_hmac(&state.config.token_hmac_secret, &code),
+                label,
+                created_at,
+                expires_at
+            ],
+        )?;
+        Database::event(connection, None, "invitation_created", "admin", None, None)
+    })?;
+    Ok(Json(json!({
+        "invitation_code": code,
+        "label": label,
+        "created_at": created_at,
+        "expires_at": expires_at
+    })))
 }
 
 async fn admin_create_submission(
@@ -182,10 +299,16 @@ async fn admin_create_submission(
         &state,
         input.external_id.as_deref(),
         "admin",
+        None,
     )?))
 }
 
-fn create_submission(state: &AppState, external_id: Option<&str>, actor: &str) -> Result<Value> {
+fn create_submission(
+    state: &AppState,
+    external_id: Option<&str>,
+    actor: &str,
+    invitation_hmac: Option<&str>,
+) -> Result<Value> {
     let id = {
         let mut bytes = [0_u8; 6];
         rand::rng().fill(&mut bytes);
@@ -201,11 +324,34 @@ fn create_submission(state: &AppState, external_id: Option<&str>, actor: &str) -
     };
     let now = chrono::Utc::now().to_rfc3339();
     let result = state.database.with(|connection| {
-        connection.execute(
+        let transaction = connection.unchecked_transaction()?;
+        if let Some(code_hmac) = invitation_hmac {
+            let available = transaction
+                .query_row(
+                    "SELECT 1 FROM invitations WHERE code_hmac=?1 AND used_at IS NULL AND expires_at>?2",
+                    params![code_hmac, now],
+                    |_| Ok(()),
+                )
+                .optional()?;
+            if available.is_none() {
+                bail!("Invitation code is invalid or has already been used");
+            }
+        }
+        transaction.execute(
             "INSERT INTO submissions (id, external_id, author_token_hmac, status, created_at, updated_at) VALUES (?1, ?2, ?3, 'awaiting_submission', ?4, ?4)",
             params![id, external_id, token_hmac(&state.config.token_hmac_secret, &token), now],
         )?;
-        Database::event(connection, Some(&id), "submission_created", actor, None, None)
+        if let Some(code_hmac) = invitation_hmac {
+            let changed = transaction.execute(
+                "UPDATE invitations SET used_at=?1, submission_id=?2 WHERE code_hmac=?3 AND used_at IS NULL",
+                params![now, id, code_hmac],
+            )?;
+            if changed != 1 {
+                bail!("Invitation code is invalid or has already been used");
+            }
+        }
+        Database::event(&transaction, Some(&id), "submission_created", actor, None, None)?;
+        Ok(transaction.commit()?)
     });
     if let Err(error) = result {
         if error
@@ -213,7 +359,7 @@ fn create_submission(state: &AppState, external_id: Option<&str>, actor: &str) -
             .contains("UNIQUE constraint failed: submissions.external_id")
         {
             bail!(
-                "This OpenReview forum URL already has an AIDaR submission; use the saved credential to revise it"
+                "This OpenReview link already has an AIDaR submission; use the saved credential to revise it"
             );
         }
         return Err(error);
@@ -227,17 +373,29 @@ fn create_submission(state: &AppState, external_id: Option<&str>, actor: &str) -
 
 async fn initial_submit(
     State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     multipart: Multipart,
 ) -> Result<Json<Value>, AppError> {
+    state.rate_limiter.check(
+        "upload",
+        client_ip(peer, &headers)?,
+        state.config.public_limits.uploads_per_minute,
+    )?;
     ingest(state, headers, multipart, false).await.map(Json)
 }
 
 async fn revise(
     State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     multipart: Multipart,
 ) -> Result<Json<Value>, AppError> {
+    state.rate_limiter.check(
+        "upload",
+        client_ip(peer, &headers)?,
+        state.config.public_limits.uploads_per_minute,
+    )?;
     ingest(state, headers, multipart, true).await.map(Json)
 }
 
@@ -256,6 +414,11 @@ async fn ingest(
     if idempotency_key.is_empty() || idempotency_key.len() > 200 {
         return Err(anyhow!("A valid Idempotency-Key is required").into());
     }
+    let _upload_permit = state
+        .upload_slots
+        .clone()
+        .try_acquire_owned()
+        .map_err(|_| anyhow!("Upload capacity is busy; try again shortly"))?;
     let upload = read_upload(multipart, &state.config).await?;
     let snapshot = extract_snapshot(&upload.archive, &upload.digest, &state.config.limits)?;
     let digest = sha256(&upload.archive);
@@ -806,5 +969,30 @@ mod tests {
     #[test]
     fn rejects_non_openreview_urls() {
         assert!(normalize_openreview("https://example.org/forum?id=Abc_123").is_err());
+    }
+
+    #[test]
+    fn rate_limiter_blocks_excess_requests() {
+        let limiter = RateLimiter::new();
+        let ip = "203.0.113.10".parse().unwrap();
+        limiter.check("registration", ip, 1).unwrap();
+        assert!(limiter.check("registration", ip, 1).is_err());
+        limiter.check("upload", ip, 1).unwrap();
+    }
+
+    #[test]
+    fn forwarded_address_is_trusted_only_from_loopback() {
+        let mut headers = HeaderMap::new();
+        headers.insert("X-Forwarded-For", "203.0.113.11".parse().unwrap());
+        let proxy = "127.0.0.1:4000".parse().unwrap();
+        let remote = "198.51.100.20:4000".parse().unwrap();
+        assert_eq!(
+            client_ip(proxy, &headers).unwrap().to_string(),
+            "203.0.113.11"
+        );
+        assert_eq!(
+            client_ip(remote, &headers).unwrap().to_string(),
+            "198.51.100.20"
+        );
     }
 }

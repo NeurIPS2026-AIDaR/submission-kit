@@ -49,6 +49,7 @@ GITHUB_INSTALLATION_ID=<installation-id>
 GITHUB_ORG=<test-organization>
 GITHUB_API_VERSION=2026-03-10
 GITHUB_PUBLIC_ARCHIVE_REPO=aidar-2026-submissions
+GITHUB_REVIEW_TEAM_ID=18777959
 ```
 
 Use a current GitHub REST API version. The version is configurable because GitHub can retire old versions.

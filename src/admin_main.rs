@@ -28,6 +28,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    CreateInvitation {
+        #[arg(long)]
+        label: Option<String>,
+    },
     CreateSubmission {
         #[arg(long)]
         external_id: Option<String>,
@@ -177,6 +181,11 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
     let api = AdminApi::new(&cli.server, admin_token(cli.token_stdin)?)?;
     let value = match cli.command {
+        Command::CreateInvitation { label } => api.request(
+            Method::POST,
+            "/v1/admin/invitations",
+            Some(json!({ "label": label })),
+        )?,
         Command::CreateSubmission { external_id } => api.request(
             Method::POST,
             "/v1/admin/submissions",

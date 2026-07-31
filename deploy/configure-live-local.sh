@@ -34,12 +34,16 @@ printf '%s\n' \
     'GITHUB_ORG=NeurIPS2026-AIDaR' \
     'GITHUB_API_VERSION=2026-03-10' \
     'GITHUB_PUBLIC_ARCHIVE_REPO=aidar-2026-submissions' \
+    'GITHUB_REVIEW_TEAM_ID=18777959' \
     'MAX_UPLOAD_BYTES=104857600' \
     'MAX_UNPACKED_BYTES=262144000' \
     'MAX_FILE_BYTES=26214400' \
     'MAX_FILE_COUNT=5000' \
     'MAX_PATH_LENGTH=240' \
-    'MAX_RESPONSE_BYTES=65536' > "$TEMP_ENV"
+    'MAX_RESPONSE_BYTES=65536' \
+    'REGISTRATIONS_PER_MINUTE=5' \
+    'UPLOADS_PER_MINUTE=2' \
+    'MAX_CONCURRENT_UPLOADS=2' > "$TEMP_ENV"
 
 install -o aidar -g aidar -m 0600 "$TEMP_ENV" /etc/aidar/aidar.env
 printf %s "$ADMIN_TOKEN" | install -o aidar -g aidar -m 0600 /dev/stdin /etc/aidar/admin.token

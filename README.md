@@ -13,12 +13,13 @@ https://github.com/NeurIPS2026-AIDaR/submission-kit/tree/main/skills/submit-to-a
 Use it to submit the project at PATH.
 ```
 
-The agent asks for your OpenReview forum URL and does the rest.
+The agent asks for your OpenReview link and one-time invitation code, then does the rest.
 
 You need:
 
 - the project directory;
-- its `https://openreview.net/forum?id=...` URL.
+- its `https://openreview.net/forum?id=...` link;
+- a one-time invitation code from the workshop organizers.
 
 That is all. The skill downloads one standalone `aidar` client and runs it. You do not need a GitHub account.
 
@@ -31,6 +32,12 @@ That is all. The skill downloads one standalone `aidar` client and runs it. You 
 5. Reviewers comment with their normal GitHub accounts. Author updates and responses appear under the AIDaR bot identity.
 
 To update a submission, ask the agent to use the skill again. The saved local credential links the revision to the same pull request.
+
+A browser submission downloads a private credential file. Save it outside the submitted project, then import it before using the CLI for reviews or revisions:
+
+```bash
+aidar import-credential aidar-submission-ID.json --project PATH
+```
 
 ## Limits
 

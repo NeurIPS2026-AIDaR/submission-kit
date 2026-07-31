@@ -37,6 +37,9 @@ SystemCallArchitectures=native
 CapabilityBoundingSet=
 AmbientCapabilities=
 LimitNOFILE=4096
+LimitCORE=0
+MemoryHigh=1G
+MemoryMax=1536M
 
 [Install]
 WantedBy=multi-user.target
