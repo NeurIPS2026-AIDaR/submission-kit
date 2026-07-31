@@ -29,11 +29,6 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
   key TEXT PRIMARY KEY, submission_id TEXT NOT NULL, request_sha256 TEXT NOT NULL,
   response_json TEXT NOT NULL, created_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS invitations (
-  code_hmac TEXT PRIMARY KEY, label TEXT, created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
-  used_at TEXT, submission_id TEXT,
-  FOREIGN KEY (submission_id) REFERENCES submissions(id)
-);
 CREATE TABLE IF NOT EXISTS events (
   id TEXT PRIMARY KEY, submission_id TEXT, event_type TEXT NOT NULL,
   actor_type TEXT NOT NULL, github_object_id TEXT, payload_sha256 TEXT, created_at TEXT NOT NULL

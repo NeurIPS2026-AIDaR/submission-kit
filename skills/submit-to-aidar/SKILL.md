@@ -25,16 +25,15 @@ For local development before the first release, use `target/release/aidar` from 
 
 1. Resolve the project path. Ask for it only if the request does not identify it.
 2. Get the OpenReview link. Ask only this question if it is missing: `What is the OpenReview link for this submission?`
-3. Get the one-time invitation code. Ask only if it is missing. Do not save it in the project or repeat it after use.
-4. Get the server from `AIDAR_BASE_URL`. Use `https://submityour.work` if the variable is absent.
-5. Run `aidar check PATH`. Show all warnings. Stop on an error.
-6. If the author asked to submit, run:
+3. Get the server from `AIDAR_BASE_URL`. Use `https://submityour.work` if the variable is absent.
+4. Run `aidar check PATH`. Show all warnings. Stop on an error.
+5. If the author asked to submit, run:
 
 ```bash
-aidar submit PATH --server URL --openreview OPENREVIEW_URL --invitation-code INVITATION_CODE
+aidar submit PATH --server URL --openreview OPENREVIEW_URL
 ```
 
-7. Return the submission ID, revision, digest, and status. Do not show or copy the saved author credential.
+6. Return the submission ID, revision, digest, and status. Do not show or copy the saved author credential.
 
 Do not ask what types of artifacts are present. Do not require a PDF, manifest, README, fixed directory layout, Git repository, or GitHub account. The client submits the regular files that the author placed in the project.
 

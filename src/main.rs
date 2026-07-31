@@ -28,8 +28,6 @@ enum Command {
         server: String,
         #[arg(long)]
         openreview: Option<String>,
-        #[arg(long, env = "AIDAR_INVITATION_CODE")]
-        invitation_code: Option<String>,
         #[arg(long)]
         submission: Option<String>,
     },
@@ -164,7 +162,6 @@ fn submit(
     path: &Path,
     server: &str,
     openreview: Option<&str>,
-    invitation_code: Option<&str>,
     submission: Option<&str>,
     revision: bool,
 ) -> Result<()> {
@@ -178,13 +175,7 @@ fn submit(
     } else {
         let openreview =
             normalize_openreview(openreview.context("The OpenReview forum URL is required")?)?;
-        let invitation_code = invitation_code
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .context(
-                "An invitation code is required; use --invitation-code or AIDAR_INVITATION_CODE",
-            )?;
-        let registration = api.register(&openreview, invitation_code)?;
+        let registration = api.register(&openreview)?;
         let submission_id = registration
             .get("submission_id")
             .and_then(Value::as_str)
@@ -237,13 +228,11 @@ fn run() -> Result<()> {
             path,
             server,
             openreview,
-            invitation_code,
             submission,
         } => submit(
             &path,
             &server,
             openreview.as_deref(),
-            invitation_code.as_deref(),
             submission.as_deref(),
             false,
         ),
@@ -252,7 +241,7 @@ fn run() -> Result<()> {
             path,
             server,
             submission,
-        } => submit(&path, &server, None, None, submission.as_deref(), true),
+        } => submit(&path, &server, None, submission.as_deref(), true),
         Command::Status {
             server,
             project,

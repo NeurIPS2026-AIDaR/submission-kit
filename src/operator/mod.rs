@@ -2,6 +2,7 @@ mod archive;
 mod config;
 mod database;
 mod github;
+mod openreview;
 
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
@@ -31,6 +32,7 @@ use self::archive::{extract_snapshot, sha256};
 use self::config::Config;
 use self::database::{Database, Submission};
 use self::github::{GithubGateway, LiveGateway, MockGateway, MockReview};
+use self::openreview::{LiveOpenReviewGateway, MockOpenReviewGateway, OpenReviewGateway};
 use crate::package::validate_server_text;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -40,6 +42,7 @@ struct AppState {
     config: Config,
     database: Arc<Database>,
     github: Arc<dyn GithubGateway>,
+    openreview: Arc<dyn OpenReviewGateway>,
     rate_limiter: Arc<RateLimiter>,
     upload_slots: Arc<Semaphore>,
 }
@@ -78,10 +81,15 @@ pub async fn serve() -> Result<()> {
         Some(value) => Arc::new(LiveGateway::new(value)?),
         None => Arc::new(MockGateway::new()),
     };
+    let openreview: Arc<dyn OpenReviewGateway> = match config.openreview.clone() {
+        Some(value) => Arc::new(LiveOpenReviewGateway::new(value)?),
+        None => Arc::new(MockOpenReviewGateway),
+    };
     let state = AppState {
         config: config.clone(),
         database,
         github,
+        openreview,
         rate_limiter: Arc::new(RateLimiter::new()),
         upload_slots: Arc::new(Semaphore::new(config.public_limits.max_concurrent_uploads)),
     };
@@ -109,7 +117,6 @@ pub async fn serve() -> Result<()> {
         )
         .route("/v1/admin/submissions/{id}/decision", post(decision))
         .route("/v1/admin/submissions/{id}/publish", post(publish))
-        .route("/v1/admin/invitations", post(create_invitation))
         .route("/v1/admin/submissions/{id}/mock-reviews", post(mock_review))
         .route(
             "/v1/admin/submissions/{id}/revoke-token",
@@ -122,10 +129,15 @@ pub async fn serve() -> Result<()> {
     let address = (config.host, config.port);
     let listener = tokio::net::TcpListener::bind(address).await?;
     println!(
-        "AIDaR API listening at http://{}:{} ({} GitHub mode)",
+        "AIDaR API listening at http://{}:{} ({} GitHub mode, {} OpenReview mode)",
         config.host,
         config.port,
         if config.github.is_some() {
+            "live"
+        } else {
+            "mock"
+        },
+        if config.openreview.is_some() {
             "live"
         } else {
             "mock"
@@ -177,8 +189,12 @@ impl IntoResponse for AppError {
         let lower = message.to_ascii_lowercase();
         let status = if lower.contains("rate limit") || lower.contains("upload capacity") {
             StatusCode::TOO_MANY_REQUESTS
-        } else if lower.contains("invitation code") {
+        } else if lower.contains("openreview verification is unavailable") {
+            StatusCode::BAD_GATEWAY
+        } else if lower.contains("not an active aidar workshop submission") {
             StatusCode::FORBIDDEN
+        } else if lower.contains("already has an aidar submission") {
+            StatusCode::CONFLICT
         } else if lower.contains("token") || lower.contains("authorization") {
             StatusCode::UNAUTHORIZED
         } else {
@@ -189,7 +205,11 @@ impl IntoResponse for AppError {
 }
 
 async fn health(State(state): State<AppState>) -> Json<Value> {
-    Json(json!({ "status": "ok", "github_mode": state.github.mode() }))
+    Json(json!({
+        "status": "ok",
+        "github_mode": state.github.mode(),
+        "openreview_mode": state.openreview.mode()
+    }))
 }
 
 fn client_ip(peer: SocketAddr, headers: &HeaderMap) -> Result<IpAddr> {
@@ -208,7 +228,6 @@ fn client_ip(peer: SocketAddr, headers: &HeaderMap) -> Result<IpAddr> {
 #[derive(Deserialize)]
 struct Registration {
     openreview_url: Option<String>,
-    invitation_code: Option<String>,
 }
 
 async fn register_submission(
@@ -222,71 +241,19 @@ async fn register_submission(
         client_ip(peer, &headers)?,
         state.config.public_limits.registrations_per_minute,
     )?;
-    let openreview = normalize_openreview(input.openreview_url.as_deref().unwrap_or(""))?;
-    let invitation = input.invitation_code.as_deref().unwrap_or("").trim();
-    if !invitation.starts_with("aidar_inv_") || invitation.len() > 128 {
-        return Err(anyhow!("Invitation code is invalid or has already been used").into());
-    }
-    let invitation_hmac = token_hmac(&state.config.token_hmac_secret, invitation);
+    let (openreview, forum_id) =
+        normalize_openreview(input.openreview_url.as_deref().unwrap_or(""))?;
+    state.openreview.verify_submission(&forum_id).await?;
     Ok(Json(create_submission(
         &state,
         Some(&openreview),
         "self_service",
-        Some(&invitation_hmac),
     )?))
 }
 
 #[derive(Deserialize)]
 struct AdminRegistration {
     external_id: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct InvitationInput {
-    label: Option<String>,
-}
-
-async fn create_invitation(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Json(input): Json<InvitationInput>,
-) -> Result<Json<Value>, AppError> {
-    require_admin(&state, &headers)?;
-    let label = input
-        .label
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty());
-    if label.is_some_and(|value| value.len() > 100 || value.chars().any(char::is_control)) {
-        return Err(anyhow!("Invitation label is invalid").into());
-    }
-    let mut bytes = [0_u8; 24];
-    rand::rng().fill(&mut bytes);
-    let code = format!(
-        "aidar_inv_{}",
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
-    );
-    let now = chrono::Utc::now();
-    let created_at = now.to_rfc3339();
-    let expires_at = (now + chrono::Duration::days(14)).to_rfc3339();
-    state.database.with(|connection| {
-        connection.execute(
-            "INSERT INTO invitations (code_hmac, label, created_at, expires_at) VALUES (?1, ?2, ?3, ?4)",
-            params![
-                token_hmac(&state.config.token_hmac_secret, &code),
-                label,
-                created_at,
-                expires_at
-            ],
-        )?;
-        Database::event(connection, None, "invitation_created", "admin", None, None)
-    })?;
-    Ok(Json(json!({
-        "invitation_code": code,
-        "label": label,
-        "created_at": created_at,
-        "expires_at": expires_at
-    })))
 }
 
 async fn admin_create_submission(
@@ -299,16 +266,10 @@ async fn admin_create_submission(
         &state,
         input.external_id.as_deref(),
         "admin",
-        None,
     )?))
 }
 
-fn create_submission(
-    state: &AppState,
-    external_id: Option<&str>,
-    actor: &str,
-    invitation_hmac: Option<&str>,
-) -> Result<Value> {
+fn create_submission(state: &AppState, external_id: Option<&str>, actor: &str) -> Result<Value> {
     let id = {
         let mut bytes = [0_u8; 6];
         rand::rng().fill(&mut bytes);
@@ -325,31 +286,10 @@ fn create_submission(
     let now = chrono::Utc::now().to_rfc3339();
     let result = state.database.with(|connection| {
         let transaction = connection.unchecked_transaction()?;
-        if let Some(code_hmac) = invitation_hmac {
-            let available = transaction
-                .query_row(
-                    "SELECT 1 FROM invitations WHERE code_hmac=?1 AND used_at IS NULL AND expires_at>?2",
-                    params![code_hmac, now],
-                    |_| Ok(()),
-                )
-                .optional()?;
-            if available.is_none() {
-                bail!("Invitation code is invalid or has already been used");
-            }
-        }
         transaction.execute(
             "INSERT INTO submissions (id, external_id, author_token_hmac, status, created_at, updated_at) VALUES (?1, ?2, ?3, 'awaiting_submission', ?4, ?4)",
             params![id, external_id, token_hmac(&state.config.token_hmac_secret, &token), now],
         )?;
-        if let Some(code_hmac) = invitation_hmac {
-            let changed = transaction.execute(
-                "UPDATE invitations SET used_at=?1, submission_id=?2 WHERE code_hmac=?3 AND used_at IS NULL",
-                params![now, id, code_hmac],
-            )?;
-            if changed != 1 {
-                bail!("Invitation code is invalid or has already been used");
-            }
-        }
         Database::event(&transaction, Some(&id), "submission_created", actor, None, None)?;
         Ok(transaction.commit()?)
     });
@@ -909,7 +849,7 @@ fn secure_equal(left: &[u8], right: &[u8]) -> bool {
     left.len() == right.len() && left.ct_eq(right).into()
 }
 
-fn normalize_openreview(value: &str) -> Result<String> {
+fn normalize_openreview(value: &str) -> Result<(String, String)> {
     let url = url::Url::parse(value.trim()).context("A valid OpenReview forum URL is required")?;
     if url.scheme() != "https"
         || url.host_str() != Some("openreview.net")
@@ -933,7 +873,7 @@ fn normalize_openreview(value: &str) -> Result<String> {
     {
         bail!("OpenReview forum URL has an invalid id");
     }
-    Ok(format!("https://openreview.net/forum?id={id}"))
+    Ok((format!("https://openreview.net/forum?id={id}"), id))
 }
 
 fn validate_login(value: &str) -> Result<()> {
@@ -962,7 +902,10 @@ mod tests {
     fn normalizes_openreview_urls() {
         assert_eq!(
             normalize_openreview("https://openreview.net/forum?id=Abc_123#discussion").unwrap(),
-            "https://openreview.net/forum?id=Abc_123"
+            (
+                "https://openreview.net/forum?id=Abc_123".to_string(),
+                "Abc_123".to_string()
+            )
         );
     }
 
