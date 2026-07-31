@@ -24,6 +24,22 @@ test "$(stat -c %a "$OPENREVIEW_TOKEN")" = 600
 test "$(stat -c %U:%G "$OPENREVIEW_TOKEN")" = aidar:aidar
 runuser -u aidar -- test -r "$OPENREVIEW_TOKEN"
 
+if ! openreview_status=$(
+    {
+        printf 'header = "Authorization: Bearer '
+        tr -d '\r\n' < "$OPENREVIEW_TOKEN"
+        printf '"\n'
+    } | runuser -u aidar -- curl -sS -o /dev/null -w '%{http_code}' --config - \
+        'https://api2.openreview.net/notes?invitation=NeurIPS.cc%2F2026%2FWorkshop%2FAIDaR%2F-%2FSubmission&limit=1'
+); then
+    echo "OpenReview access preflight could not reach API 2." >&2
+    exit 1
+fi
+if [ "$openreview_status" != 200 ]; then
+    echo "OpenReview token preflight returned HTTP $openreview_status; expected 200." >&2
+    exit 1
+fi
+
 umask 077
 install -d -o aidar -g aidar -m 0700 /var/lib/aidar/backups
 install -d -o root -g root -m 0700 "$BACKUP"
@@ -122,7 +138,10 @@ gate_status=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Content-Type: application/json' \
     --data '{"openreview_url":"https://openreview.net/forum?id=AIDaRVerificationProbeLocal"}' \
     http://127.0.0.1:39740/v1/author/submissions)
-test "$gate_status" = 403
+if [ "$gate_status" != 403 ]; then
+    echo "Local OpenReview gate returned HTTP $gate_status; expected 403." >&2
+    exit 1
+fi
 
 systemctl reload apache2
 curl -fsS https://submityour.work/health >/dev/null
@@ -130,7 +149,10 @@ public_gate_status=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Content-Type: application/json' \
     --data '{"openreview_url":"https://openreview.net/forum?id=AIDaRVerificationProbePublic"}' \
     https://submityour.work/v1/author/submissions)
-test "$public_gate_status" = 403
+if [ "$public_gate_status" != 403 ]; then
+    echo "Public OpenReview gate returned HTTP $public_gate_status; expected 403." >&2
+    exit 1
+fi
 redirect_status=$(curl -sS -o /dev/null -w '%{http_code}' http://submityour.work/)
 test "$redirect_status" = 301
 

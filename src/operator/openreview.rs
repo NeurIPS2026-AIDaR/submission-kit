@@ -48,6 +48,12 @@ impl OpenReviewGateway for LiveOpenReviewGateway {
             .send()
             .await
             .map_err(|_| anyhow::anyhow!("OpenReview verification is unavailable"))?;
+        if matches!(
+            response.status(),
+            StatusCode::FORBIDDEN | StatusCode::NOT_FOUND
+        ) {
+            bail!("This link is not an active AIDaR workshop submission");
+        }
         if response.status() != StatusCode::OK {
             bail!("OpenReview verification is unavailable");
         }
