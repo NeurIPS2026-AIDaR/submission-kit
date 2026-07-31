@@ -534,6 +534,24 @@
       background: var(--brand-soft);
     }
 
+    .step-two {
+      position: relative;
+      border-bottom-color: transparent;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .step-two::after {
+      position: absolute;
+      right: -1px;
+      bottom: -13px;
+      left: -1px;
+      height: 14px;
+      background: var(--brand-soft);
+      border-right: 1px solid var(--brand-line);
+      border-left: 1px solid var(--brand-line);
+      content: "";
+    }
+
     .step-label {
       display: inline-block;
       margin-bottom: 18px;
