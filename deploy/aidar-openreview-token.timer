@@ -1,0 +1,11 @@
+[Unit]
+Description=Check the AIDaR OpenReview token every 30 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00,30:00 UTC
+RandomizedDelaySec=5m
+Persistent=true
+Unit=aidar-openreview-token.service
+
+[Install]
+WantedBy=timers.target
