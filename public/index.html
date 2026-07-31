@@ -84,7 +84,7 @@
     .paths {
       grid-area: paths;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
       padding: 16px;
       background: var(--brand-soft);
@@ -92,6 +92,7 @@
     }
 
     .path {
+      min-width: 0;
       min-height: 165px;
       padding: 20px;
       background: var(--paper);
@@ -119,19 +120,46 @@
       text-underline-offset: 3px;
     }
 
-    .uploader {
-      margin-top: 54px;
-      padding: 34px;
+    .upload-dialog {
+      width: min(860px, calc(100% - 28px));
+      max-height: calc(100vh - 28px);
+      overflow: auto;
+      padding: 0;
       background: var(--wash);
       border: 1px solid var(--line);
       border-radius: 16px;
-      scroll-margin-top: 24px;
+      box-shadow: 0 24px 80px rgba(23, 33, 38, 0.22);
     }
+
+    .upload-dialog::backdrop { background: rgba(23, 33, 38, 0.55); }
+
+    .modal-inner {
+      position: relative;
+      padding: 34px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      color: var(--muted);
+      background: var(--paper);
+      border-color: var(--line);
+      border-radius: 50%;
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .modal-close:hover { color: var(--paper); }
 
     .uploader-head {
       display: grid;
       grid-template-columns: 0.7fr 2fr;
       gap: 42px;
+      padding-right: 42px;
       margin-bottom: 28px;
     }
 
@@ -143,6 +171,153 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
     }
+
+    .credential-panel {
+      margin-bottom: 22px;
+      padding: 18px;
+      background: var(--paper);
+      border: 1px solid var(--brand-line);
+      border-radius: 10px;
+    }
+
+    .credential-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .credential-head h3,
+    .credential-head p { margin: 0; }
+
+    .credential-head p {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .credential-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .credential-actions select {
+      width: auto;
+      max-width: 210px;
+      padding: 8px 10px;
+      border: 1px solid #bccacc;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .credential-actions button {
+      padding: 8px 10px;
+      font-size: 0.78rem;
+    }
+
+    .submission-dashboard {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .dashboard-status {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .submission-facts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 18px;
+    }
+
+    .submission-facts div {
+      padding: 10px;
+      background: var(--wash);
+      border-radius: 8px;
+    }
+
+    .submission-facts dt {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .submission-facts dd {
+      margin: 3px 0 0;
+      overflow-wrap: anywhere;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .review-section h4,
+    .response-form h4 {
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+    }
+
+    .review-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .review-card {
+      padding: 12px;
+      background: var(--wash);
+      border-radius: 8px;
+    }
+
+    .review-card h5 {
+      margin: 0;
+      font-size: 0.84rem;
+    }
+
+    .review-meta {
+      margin: 2px 0 8px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .review-body {
+      margin: 0;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      font: inherit;
+      font-size: 0.82rem;
+    }
+
+    .response-form {
+      display: grid;
+      gap: 9px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .response-form select {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #bccacc;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .response-form textarea { min-height: 96px; }
+
+    .response-status {
+      min-height: 1.4em;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    [hidden] { display: none !important; }
 
     .field {
       display: flex;
@@ -219,6 +394,46 @@
     }
 
     .browser-link:hover { color: var(--paper); background: var(--brand-dark); }
+
+    .agent-prompt {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      background: var(--wash);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .agent-prompt pre {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      margin: 0;
+      padding: 10px 48px 10px 10px;
+      color: var(--ink);
+      font: 0.72rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+
+    .copy-agent {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .copy-agent[data-copied="true"] {
+      color: var(--paper);
+      background: var(--brand);
+    }
 
     .check-row {
       display: flex;
@@ -352,10 +567,14 @@
       .paths { grid-template-columns: 1fr; padding: 12px; }
       .path { min-height: auto; }
       .path p { min-height: auto; }
-      .uploader { padding: 24px; }
+      .modal-inner { padding: 52px 22px 24px; }
       .uploader-head,
-      .browser-form { grid-template-columns: 1fr; }
+      .browser-form,
+      .credential-head,
+      .submission-facts { grid-template-columns: 1fr; }
       .uploader-head { gap: 12px; }
+      .credential-actions { justify-content: flex-start; }
+      .credential-actions select { width: 100%; max-width: none; }
       .field-wide,
       .form-actions,
       .check-row,
@@ -393,56 +612,22 @@
           </article>
           <article class="path">
             <h3>AI agent</h3>
-            <p>Give your agent the AIDaRS skill and a project path. The agent uses the same client and privacy checks.</p>
-            <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit/tree/main/skills/submit-to-aidar">View the agent skill</a>
+            <p>Copy this prompt into your AI agent and replace <code>PATH</code> with your project folder.</p>
+            <div class="agent-prompt">
+              <pre><code id="agent-prompt-text">Install the submit-to-aidar skill from https://github.com/NeurIPS2026-AIDaR/submission-kit/tree/main/skills/submit-to-aidar and use it to submit my project at PATH.</code></pre>
+              <button class="secondary-button copy-agent" id="copy-agent-prompt" type="button" aria-label="Copy prompt" title="Copy prompt"><span aria-hidden="true">⧉</span></button>
+            </div>
           </article>
           <article class="path">
             <h3>Browser upload</h3>
             <p>Select a project folder and complete the same submission flow without installing a client.</p>
-            <a href="#browser-upload">Upload in browser</a>
+            <button class="browser-link" id="open-browser-upload" type="button">Upload in browser</button>
           </article>
         </div>
         <div class="step step-three">
           <strong>3. Check and respond to your reviews</strong>
           <p>Use the <code>aidar</code> tool to fetch and respond to reviews. <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit">Learn about the tool and system on GitHub.</a></p>
         </div>
-      </section>
-
-      <section class="uploader" id="browser-upload" aria-labelledby="browser-title">
-        <div class="uploader-head">
-          <h2 id="browser-title">Upload in browser</h2>
-          <p>Your browser checks and packages the folder on this device. AIDaRS sends the checked archive through this service to a private GitHub repository. The service processes it in memory and does not retain the archive.</p>
-        </div>
-        <form class="browser-form" id="browser-form">
-          <div class="field">
-            <label for="openreview-url">OpenReview link</label>
-            <input id="openreview-url" name="openreview_url" type="url" inputmode="url" autocomplete="off" placeholder="https://openreview.net/forum?id=…" required>
-          </div>
-          <div class="field">
-            <label for="invitation-code">Invitation code</label>
-            <input id="invitation-code" name="invitation_code" type="password" autocomplete="off" spellcheck="false" placeholder="aidar_inv_…" required>
-          </div>
-          <div class="field field-wide">
-            <label for="project-folder">Project folder</label>
-            <input id="project-folder" name="project_folder" type="file" webkitdirectory multiple required>
-            <small>Git history, workflow files, and the local AIDaR identity file are excluded. Individual files are limited to 25 MB; browser uploads are limited to 100 MB total.</small>
-          </div>
-          <div class="field field-wide">
-            <label for="identity-terms">Names or usernames to check <span aria-hidden="true">(optional)</span></label>
-            <textarea id="identity-terms" autocomplete="off" spellcheck="false" placeholder="One author name or username per line"></textarea>
-            <small>These terms stay in this browser. AIDaRS stops the upload if it finds an identity, common secret, unsafe path, or duplicate filename.</small>
-          </div>
-          <label class="check-row" id="binary-confirm-row" hidden>
-            <input id="binary-confirm" type="checkbox">
-            <span>I reviewed the binary files. I understand that automated text checks cannot inspect their contents.</span>
-          </label>
-          <div class="form-actions">
-            <button class="secondary-button" id="check-folder" type="button">Check folder</button>
-            <button id="submit-folder" type="submit" disabled>Submit privately</button>
-          </div>
-          <p class="upload-status" id="upload-status" role="status" aria-live="polite">Select a folder, then run the local check.</p>
-          <div class="upload-result" id="upload-result" hidden></div>
-        </form>
       </section>
 
       <section class="privacy" aria-labelledby="privacy-title">
@@ -461,6 +646,85 @@
       </nav>
     </footer>
   </div>
-  <script src="/app.js" defer></script>
+
+  <dialog class="upload-dialog" id="browser-dialog" aria-labelledby="browser-title">
+    <div class="modal-inner">
+      <button class="modal-close" id="close-browser-upload" type="button" aria-label="Close browser upload">×</button>
+      <div class="uploader-head">
+        <h2 id="browser-title">Upload in browser</h2>
+        <p>Your browser checks and packages the folder on this device. AIDaRS sends the checked archive through this service to a private GitHub repository. The service processes it in memory and does not retain the archive.</p>
+      </div>
+      <section class="credential-panel" aria-labelledby="credential-title">
+        <div class="credential-head">
+          <div>
+            <h3 id="credential-title">Your AIDaR key</h3>
+            <p id="credential-summary">No submission key is active. Your first upload creates one automatically.</p>
+            <p>Keys are saved only in this browser. Download the backup and use “Forget” on a shared device.</p>
+          </div>
+          <div class="credential-actions">
+            <select id="saved-credentials" aria-label="Saved AIDaR submissions" hidden></select>
+            <button class="secondary-button" id="refresh-submission" type="button" hidden>Refresh</button>
+            <button class="secondary-button" id="download-credential" type="button" hidden>Download key</button>
+            <button class="secondary-button" id="import-credential" type="button">Import key</button>
+            <input id="credential-file" type="file" accept=".json,application/json" hidden>
+            <button class="secondary-button" id="start-new-submission" type="button" hidden>Start new</button>
+            <button class="secondary-button" id="forget-credential" type="button" hidden>Forget</button>
+          </div>
+        </div>
+        <div class="submission-dashboard" id="submission-dashboard" hidden>
+          <p class="dashboard-status" id="dashboard-status" role="status" aria-live="polite"></p>
+          <dl class="submission-facts" id="submission-facts"></dl>
+          <section class="review-section" aria-labelledby="reviews-title">
+            <h4 id="reviews-title">Reviews</h4>
+            <div class="review-list" id="review-list"></div>
+          </section>
+          <form class="response-form" id="response-form" hidden>
+            <h4>Respond to the review</h4>
+            <label class="field-label" for="reply-to-review">Response context</label>
+            <select id="reply-to-review"></select>
+            <label class="field-label" for="review-response">Response</label>
+            <textarea id="review-response" maxlength="65536" required></textarea>
+            <div class="form-actions">
+              <button id="post-response" type="submit">Post response</button>
+            </div>
+            <p class="response-status" id="response-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+      <form class="browser-form" id="browser-form">
+        <div class="field" id="openreview-field">
+          <label for="openreview-url">OpenReview link</label>
+          <input id="openreview-url" name="openreview_url" type="url" inputmode="url" autocomplete="off" placeholder="https://openreview.net/forum?id=…" required>
+        </div>
+        <div class="field" id="invitation-field">
+          <label for="invitation-code">Invitation code</label>
+          <input id="invitation-code" name="invitation_code" type="password" autocomplete="off" spellcheck="false" placeholder="aidar_inv_…" required>
+          <small>This one-time code creates a private key for the submission.</small>
+        </div>
+        <div class="field field-wide">
+          <label for="project-folder">Project folder</label>
+          <input id="project-folder" name="project_folder" type="file" webkitdirectory multiple required>
+          <small>Git history, workflow files, and the local AIDaR identity file are excluded. Individual files are limited to 25 MB; browser uploads are limited to 100 MB total.</small>
+        </div>
+        <div class="field field-wide">
+          <label for="identity-terms">Names or usernames to check <span aria-hidden="true">(optional)</span></label>
+          <textarea id="identity-terms" autocomplete="off" spellcheck="false" placeholder="One author name or username per line"></textarea>
+          <small>These terms stay in this browser. AIDaRS stops the upload if it finds an identity, common secret, unsafe path, or duplicate filename.</small>
+        </div>
+        <label class="check-row" id="binary-confirm-row" hidden>
+          <input id="binary-confirm" type="checkbox">
+          <span>I reviewed the binary files. I understand that automated text checks cannot inspect their contents.</span>
+        </label>
+        <div class="form-actions">
+          <button class="secondary-button" id="check-folder" type="button">Check folder</button>
+          <button id="submit-folder" type="submit" disabled>Submit privately</button>
+        </div>
+        <p class="upload-status" id="upload-status" role="status" aria-live="polite">Select a folder, then run the local check.</p>
+        <div class="upload-result" id="upload-result" hidden></div>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="/app.js?v=20260731-browser-key" defer></script>
 </body>
 </html>

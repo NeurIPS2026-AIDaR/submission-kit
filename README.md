@@ -33,7 +33,9 @@ That is all. The skill downloads one standalone `aidar` client and runs it. You 
 
 To update a submission, ask the agent to use the skill again. The saved local credential links the revision to the same pull request.
 
-A browser submission downloads a private credential file. Save it outside the submitted project, then import it before using the CLI for reviews or revisions:
+A browser submission saves its private AIDaR key in that browser and downloads a backup file. A returning author can refresh status, read reviews, respond, or upload a checked revision without entering the invitation code again. Use **Forget** after a session on a shared device.
+
+Keep the downloaded key outside the submitted project. Import it in another browser, or attach it to a local project for CLI access:
 
 ```bash
 aidar import-credential aidar-submission-ID.json --project PATH
