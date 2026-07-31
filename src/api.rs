@@ -51,14 +51,11 @@ impl Api {
         Ok(value)
     }
 
-    pub fn register(&self, openreview_url: &str, invitation_code: &str) -> Result<Value> {
+    pub fn register(&self, openreview_url: &str) -> Result<Value> {
         Self::json(
             self.client
                 .post(format!("{}/v1/author/submissions", self.server))
-                .json(&json!({
-                    "openreview_url": openreview_url,
-                    "invitation_code": invitation_code
-                }))
+                .json(&json!({ "openreview_url": openreview_url }))
                 .send()?,
         )
     }

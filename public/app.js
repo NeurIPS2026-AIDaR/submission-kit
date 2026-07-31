@@ -35,9 +35,7 @@
   const postResponseButton = document.querySelector("#post-response");
   const responseStatus = document.querySelector("#response-status");
   const openreviewField = document.querySelector("#openreview-field");
-  const invitationField = document.querySelector("#invitation-field");
   const openreviewInput = document.querySelector("#openreview-url");
-  const invitationInput = document.querySelector("#invitation-code");
 
   const limits = {
     fileCount: 5000,
@@ -206,9 +204,7 @@
     startNewSubmissionButton.hidden = !active;
     forgetCredentialButton.hidden = !active;
     openreviewField.hidden = active;
-    invitationField.hidden = active;
     openreviewInput.required = !active;
-    invitationInput.required = !active;
 
     if (active) {
       credentialSummary.textContent = "Submission " + credential.submission_id + " is active on this device.";
@@ -492,8 +488,7 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        openreview_url: openreviewInput.value.trim(),
-        invitation_code: invitationInput.value.trim()
+        openreview_url: openreviewInput.value.trim()
       }),
       credentials: "omit",
       redirect: "error",
@@ -799,7 +794,7 @@
     checkButton.disabled = true;
     try {
       if (!credential) {
-        setStatus("Creating the invited submission…", "working");
+        setStatus("Verifying the OpenReview submission…", "working");
         const registered = await register();
         credential = normalizeCredential(credentialReceipt(registered));
         credentialStatus = {
@@ -808,7 +803,6 @@
           revision: 0
         };
         rememberCredential(credential);
-        invitationInput.value = "";
         openreviewInput.value = "";
         updateCredentialControls();
         downloadCredential(credential);

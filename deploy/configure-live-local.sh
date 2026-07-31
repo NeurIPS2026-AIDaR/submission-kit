@@ -7,10 +7,15 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 KEY=/etc/aidar/github-app.pem
+OPENREVIEW_TOKEN=/etc/aidar/openreview-token
 test -f "$KEY"
 test "$(stat -c %a "$KEY")" = 600
 test "$(stat -c %U:%G "$KEY")" = aidar:aidar
 runuser -u aidar -- test -r "$KEY"
+test -f "$OPENREVIEW_TOKEN"
+test "$(stat -c %a "$OPENREVIEW_TOKEN")" = 600
+test "$(stat -c %U:%G "$OPENREVIEW_TOKEN")" = aidar:aidar
+runuser -u aidar -- test -r "$OPENREVIEW_TOKEN"
 
 umask 077
 TEMP_ENV=$(mktemp /etc/aidar/aidar.env.XXXXXX)
@@ -35,6 +40,10 @@ printf '%s\n' \
     'GITHUB_API_VERSION=2026-03-10' \
     'GITHUB_PUBLIC_ARCHIVE_REPO=aidar-2026-submissions' \
     'GITHUB_REVIEW_TEAM_ID=18777959' \
+    'OPENREVIEW_API_BASE=https://api2.openreview.net' \
+    'OPENREVIEW_ACCESS_TOKEN_PATH=/etc/aidar/openreview-token' \
+    'OPENREVIEW_SUBMISSION_INVITATION=NeurIPS.cc/2026/Workshop/AIDaR/-/Submission' \
+    'OPENREVIEW_ACTIVE_VENUE_ID=NeurIPS.cc/2026/Workshop/AIDaR/Submission' \
     'MAX_UPLOAD_BYTES=104857600' \
     'MAX_UNPACKED_BYTES=262144000' \
     'MAX_FILE_BYTES=26214400' \

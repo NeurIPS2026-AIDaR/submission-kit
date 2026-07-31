@@ -13,13 +13,12 @@ https://github.com/NeurIPS2026-AIDaR/submission-kit/tree/main/skills/submit-to-a
 Use it to submit the project at PATH.
 ```
 
-The agent asks for your OpenReview link and one-time invitation code, then does the rest.
+The agent asks for your OpenReview link, then does the rest.
 
 You need:
 
 - the project directory;
-- its `https://openreview.net/forum?id=...` link;
-- a one-time invitation code from the workshop organizers.
+- its `https://openreview.net/forum?id=...` link.
 
 That is all. The skill downloads one standalone `aidar` client and runs it. You do not need a GitHub account.
 
@@ -33,7 +32,7 @@ That is all. The skill downloads one standalone `aidar` client and runs it. You 
 
 To update a submission, ask the agent to use the skill again. The saved local credential links the revision to the same pull request.
 
-A browser submission saves its private AIDaR key in that browser and downloads a backup file. A returning author can refresh status, read reviews, respond, or upload a checked revision without entering the invitation code again. Use **Forget** after a session on a shared device.
+The server verifies that the OpenReview link is an active AIDaR workshop submission, and each link can create one private AIDaR key. A browser submission saves that key in the browser and downloads a backup file. A returning author can refresh status, read reviews, respond, or upload a checked revision. Use **Forget** after a session on a shared device.
 
 Keep the downloaded key outside the submitted project. Import it in another browser, or attach it to a local project for CLI access:
 

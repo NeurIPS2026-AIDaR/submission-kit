@@ -18,6 +18,11 @@ test -r "$SOURCE_ROOT/public/index.html"
 test -r "$SOURCE_ROOT/public/app.js"
 test -f "$ENV_FILE"
 test -f /etc/aidar/github-app.pem
+OPENREVIEW_TOKEN=/etc/aidar/openreview-token
+test -f "$OPENREVIEW_TOKEN"
+test "$(stat -c %a "$OPENREVIEW_TOKEN")" = 600
+test "$(stat -c %U:%G "$OPENREVIEW_TOKEN")" = aidar:aidar
+runuser -u aidar -- test -r "$OPENREVIEW_TOKEN"
 
 umask 077
 install -d -o aidar -g aidar -m 0700 /var/lib/aidar/backups
@@ -79,6 +84,10 @@ set_env() {
 }
 
 set_env GITHUB_REVIEW_TEAM_ID 18777959
+set_env OPENREVIEW_API_BASE https://api2.openreview.net
+set_env OPENREVIEW_ACCESS_TOKEN_PATH /etc/aidar/openreview-token
+set_env OPENREVIEW_SUBMISSION_INVITATION NeurIPS.cc/2026/Workshop/AIDaR/-/Submission
+set_env OPENREVIEW_ACTIVE_VENUE_ID NeurIPS.cc/2026/Workshop/AIDaR/Submission
 set_env REGISTRATIONS_PER_MINUTE 5
 set_env UPLOADS_PER_MINUTE 2
 set_env MAX_CONCURRENT_UPLOADS 2
@@ -111,7 +120,7 @@ done
 
 gate_status=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Content-Type: application/json' \
-    --data '{"openreview_url":"https://openreview.net/forum?id=CutoverGateCheck","invitation_code":"aidar_inv_invalid"}' \
+    --data '{"openreview_url":"https://openreview.net/forum?id=AIDaRVerificationProbeLocal"}' \
     http://127.0.0.1:39740/v1/author/submissions)
 test "$gate_status" = 403
 
@@ -119,13 +128,13 @@ systemctl reload apache2
 curl -fsS https://submityour.work/health >/dev/null
 public_gate_status=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Content-Type: application/json' \
-    --data '{"openreview_url":"https://openreview.net/forum?id=PublicCutoverGate","invitation_code":"aidar_inv_invalid"}' \
+    --data '{"openreview_url":"https://openreview.net/forum?id=AIDaRVerificationProbePublic"}' \
     https://submityour.work/v1/author/submissions)
 test "$public_gate_status" = 403
 redirect_status=$(curl -sS -o /dev/null -w '%{http_code}' http://submityour.work/)
 test "$redirect_status" = 301
 
 trap - EXIT HUP INT TERM
-echo "Activated the invited AIDaR browser pilot."
+echo "Activated the OpenReview-verified AIDaR browser pilot."
 echo "Rollback files are owner-only at $BACKUP."
 echo "No secret values were printed."

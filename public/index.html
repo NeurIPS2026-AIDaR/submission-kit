@@ -692,14 +692,10 @@
         </div>
       </section>
       <form class="browser-form" id="browser-form">
-        <div class="field" id="openreview-field">
+        <div class="field field-wide" id="openreview-field">
           <label for="openreview-url">OpenReview link</label>
           <input id="openreview-url" name="openreview_url" type="url" inputmode="url" autocomplete="off" placeholder="https://openreview.net/forum?id=…" required>
-        </div>
-        <div class="field" id="invitation-field">
-          <label for="invitation-code">Invitation code</label>
-          <input id="invitation-code" name="invitation_code" type="password" autocomplete="off" spellcheck="false" placeholder="aidar_inv_…" required>
-          <small>This one-time code creates a private key for the submission.</small>
+          <small>AIDaRS verifies this workshop submission with OpenReview. Each link can create one private AIDaR key.</small>
         </div>
         <div class="field field-wide">
           <label for="project-folder">Project folder</label>

@@ -34,6 +34,14 @@ pub struct GithubConfig {
 }
 
 #[derive(Clone)]
+pub struct OpenReviewConfig {
+    pub api_base: String,
+    pub access_token: String,
+    pub submission_invitation: String,
+    pub active_venue_id: String,
+}
+
+#[derive(Clone)]
 pub struct Config {
     pub host: IpAddr,
     pub port: u16,
@@ -42,6 +50,7 @@ pub struct Config {
     pub admin_token: Option<String>,
     pub admin_token_hash: Option<String>,
     pub github: Option<GithubConfig>,
+    pub openreview: Option<OpenReviewConfig>,
     pub limits: Limits,
     pub public_limits: PublicLimits,
 }
@@ -114,6 +123,43 @@ impl Config {
         } else {
             None
         };
+        let openreview = if live == "live" {
+            let token_path = env::var("OPENREVIEW_ACCESS_TOKEN_PATH")
+                .context("OPENREVIEW_ACCESS_TOKEN_PATH is required in live mode")?;
+            let access_token = fs::read_to_string(&token_path)
+                .with_context(|| format!("Cannot read {token_path}"))?;
+            let access_token = access_token.trim().to_string();
+            if access_token.is_empty()
+                || access_token.len() > 8_192
+                || access_token.chars().any(char::is_control)
+            {
+                bail!("OpenReview access token file is invalid");
+            }
+            let api_base = env::var("OPENREVIEW_API_BASE")
+                .unwrap_or_else(|_| "https://api2.openreview.net".to_string());
+            let api_url = url::Url::parse(&api_base).context("OPENREVIEW_API_BASE is invalid")?;
+            if api_url.scheme() != "https"
+                || api_url.host_str() != Some("api2.openreview.net")
+                || api_url.port().is_some()
+                || api_url.path() != "/"
+                || api_url.query().is_some()
+                || api_url.fragment().is_some()
+                || !api_url.username().is_empty()
+                || api_url.password().is_some()
+            {
+                bail!("Live mode requires the official OpenReview API 2 endpoint");
+            }
+            Some(OpenReviewConfig {
+                api_base: api_base.trim_end_matches('/').to_string(),
+                access_token,
+                submission_invitation: env::var("OPENREVIEW_SUBMISSION_INVITATION")
+                    .unwrap_or_else(|_| "NeurIPS.cc/2026/Workshop/AIDaR/-/Submission".to_string()),
+                active_venue_id: env::var("OPENREVIEW_ACTIVE_VENUE_ID")
+                    .unwrap_or_else(|_| "NeurIPS.cc/2026/Workshop/AIDaR/Submission".to_string()),
+            })
+        } else {
+            None
+        };
         Ok(Self {
             host: env::var("AIDAR_HOST")
                 .unwrap_or_else(|_| "127.0.0.1".to_string())
@@ -131,6 +177,7 @@ impl Config {
             admin_token,
             admin_token_hash,
             github,
+            openreview,
             limits: Limits {
                 max_upload_bytes: positive("MAX_UPLOAD_BYTES", 209_715_200)?,
                 max_unpacked_bytes: positive("MAX_UNPACKED_BYTES", 524_288_000)?,
