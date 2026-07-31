@@ -122,7 +122,10 @@ gate_status=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Content-Type: application/json' \
     --data '{"openreview_url":"https://openreview.net/forum?id=AIDaRVerificationProbeLocal"}' \
     http://127.0.0.1:39740/v1/author/submissions)
-test "$gate_status" = 403
+if [ "$gate_status" != 403 ]; then
+    echo "Local OpenReview gate returned HTTP $gate_status; expected 403." >&2
+    exit 1
+fi
 
 systemctl reload apache2
 curl -fsS https://submityour.work/health >/dev/null
@@ -130,7 +133,10 @@ public_gate_status=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H 'Content-Type: application/json' \
     --data '{"openreview_url":"https://openreview.net/forum?id=AIDaRVerificationProbePublic"}' \
     https://submityour.work/v1/author/submissions)
-test "$public_gate_status" = 403
+if [ "$public_gate_status" != 403 ]; then
+    echo "Public OpenReview gate returned HTTP $public_gate_status; expected 403." >&2
+    exit 1
+fi
 redirect_status=$(curl -sS -o /dev/null -w '%{http_code}' http://submityour.work/)
 test "$redirect_status" = 301
 
