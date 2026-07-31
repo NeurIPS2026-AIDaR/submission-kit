@@ -16,6 +16,13 @@ pub struct Limits {
 }
 
 #[derive(Clone)]
+pub struct PublicLimits {
+    pub registrations_per_minute: usize,
+    pub uploads_per_minute: usize,
+    pub max_concurrent_uploads: usize,
+}
+
+#[derive(Clone)]
 pub struct GithubConfig {
     pub app_id: String,
     pub private_key: String,
@@ -23,6 +30,7 @@ pub struct GithubConfig {
     pub org: String,
     pub api_version: String,
     pub public_archive_repo: String,
+    pub review_team_id: Option<u64>,
 }
 
 #[derive(Clone)]
@@ -35,6 +43,7 @@ pub struct Config {
     pub admin_token_hash: Option<String>,
     pub github: Option<GithubConfig>,
     pub limits: Limits,
+    pub public_limits: PublicLimits,
 }
 
 fn positive(name: &str, fallback: usize) -> Result<usize> {
@@ -95,6 +104,12 @@ impl Config {
                     .unwrap_or_else(|_| "2026-03-10".to_string()),
                 public_archive_repo: env::var("GITHUB_PUBLIC_ARCHIVE_REPO")
                     .unwrap_or_else(|_| "aidar-2026-submissions".to_string()),
+                review_team_id: env::var("GITHUB_REVIEW_TEAM_ID")
+                    .ok()
+                    .filter(|value| !value.is_empty())
+                    .map(|value| value.parse())
+                    .transpose()
+                    .context("GITHUB_REVIEW_TEAM_ID must be an integer")?,
             })
         } else {
             None
@@ -123,6 +138,11 @@ impl Config {
                 max_file_count: positive("MAX_FILE_COUNT", 10_000)?,
                 max_path_length: positive("MAX_PATH_LENGTH", 240)?,
                 max_response_bytes: positive("MAX_RESPONSE_BYTES", 65_536)?,
+            },
+            public_limits: PublicLimits {
+                registrations_per_minute: positive("REGISTRATIONS_PER_MINUTE", 5)?,
+                uploads_per_minute: positive("UPLOADS_PER_MINUTE", 2)?,
+                max_concurrent_uploads: positive("MAX_CONCURRENT_UPLOADS", 2)?,
             },
         })
     }

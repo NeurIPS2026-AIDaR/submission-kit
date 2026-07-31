@@ -424,21 +424,25 @@ impl GithubGateway for LiveGateway {
     async fn create_submission(&self, id: &str, snapshot: &Snapshot) -> Result<SubmissionResult> {
         let token = self.installation_token().await?;
         let repo = format!("submission-{id}");
+        let mut settings = json!({
+            "name": repo,
+            "private": true,
+            "auto_init": true,
+            "description": "Anonymous AIDaR workshop review",
+            "has_issues": true,
+            "has_projects": false,
+            "has_wiki": false,
+            "has_discussions": false
+        });
+        if let Some(team_id) = self.config.review_team_id {
+            settings["team_id"] = json!(team_id);
+        }
         let created = self
             .call(
                 &token,
                 Method::POST,
                 &format!("/orgs/{}/repos", self.config.org),
-                Some(json!({
-                    "name": repo,
-                    "private": true,
-                    "auto_init": true,
-                    "description": "Anonymous AIDaR workshop review",
-                    "has_issues": true,
-                    "has_projects": false,
-                    "has_wiki": false,
-                    "has_discussions": false
-                })),
+                Some(settings),
             )
             .await?;
         let repo_id = created["id"]

@@ -1,8 +1,466 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Submit your work</title>
-<meta name="robots" content="noindex,nofollow">
-<h1>AIDaR invited pilot</h1>
-<p>This service is not open for public submissions yet.</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Submit a checked, reviewer-anonymous project to the NeurIPS 2026 AIDaR workshop.">
+  <meta name="robots" content="noindex, nofollow">
+  <title>AIDaRS — Submit your work</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172126;
+      --muted: #526168;
+      --line: #d9e2e4;
+      --paper: #ffffff;
+      --wash: #f4f8f8;
+      --brand: #155e75;
+      --brand-dark: #104b5d;
+      --brand-soft: #edf5f6;
+      --brand-line: #cfe1e4;
+      --notice: #755c15;
+      --soft-notice: #fbf5df;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+
+    a { color: var(--brand); }
+    a:hover { color: var(--brand-dark); }
+    a:focus-visible { outline: 3px solid #8bc4d1; outline-offset: 3px; }
+
+    .shell {
+      width: min(1080px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 74px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wordmark {
+      color: var(--ink);
+      font-size: 1.05rem;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+
+    main { padding: 68px 0 56px; }
+
+    .hero {
+      max-width: 790px;
+      padding-bottom: 32px;
+    }
+
+    h1 {
+      max-width: 720px;
+      margin: 0;
+      font-size: clamp(2.6rem, 7vw, 5.4rem);
+      font-weight: 720;
+      letter-spacing: -0.055em;
+      line-height: 0.98;
+    }
+
+
+    h2 {
+      margin: 0 0 26px;
+      font-size: 1.35rem;
+      letter-spacing: -0.025em;
+    }
+
+    .paths {
+      grid-area: paths;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 16px;
+      background: var(--brand-soft);
+      border-radius: 14px;
+    }
+
+    .path {
+      min-height: 165px;
+      padding: 20px;
+      background: var(--paper);
+      border: 1px solid var(--brand-line);
+      border-radius: 10px;
+    }
+
+
+    .path h3 {
+      margin: 0 0 10px;
+      font-size: 1.02rem;
+      letter-spacing: -0.02em;
+    }
+
+    .path p {
+      min-height: 62px;
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .path a {
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-underline-offset: 3px;
+    }
+
+    .uploader {
+      margin-top: 54px;
+      padding: 34px;
+      background: var(--wash);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      scroll-margin-top: 24px;
+    }
+
+    .uploader-head {
+      display: grid;
+      grid-template-columns: 0.7fr 2fr;
+      gap: 42px;
+      margin-bottom: 28px;
+    }
+
+    .uploader-head h2,
+    .uploader-head p { margin: 0; }
+
+    .browser-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field-wide { grid-column: 1 / -1; }
+
+    .field label,
+    .field-label {
+      font-size: 0.84rem;
+      font-weight: 720;
+    }
+
+    .field small {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid #bccacc;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    input[type="file"] { padding: 10px; }
+    textarea { min-height: 76px; resize: vertical; }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      grid-column: 1 / -1;
+    }
+
+    button,
+    .browser-link {
+      padding: 10px 14px;
+      border: 1px solid var(--brand);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    button {
+      color: var(--paper);
+      background: var(--brand);
+    }
+
+    button:hover { background: var(--brand-dark); }
+    button:disabled { cursor: not-allowed; opacity: 0.48; }
+
+    .secondary-button {
+      color: var(--brand);
+      background: var(--paper);
+    }
+
+    .secondary-button:hover { color: var(--paper); }
+
+    .browser-link {
+      display: inline-block;
+      color: var(--brand);
+      background: var(--paper);
+      text-decoration: none;
+    }
+
+    .browser-link:hover { color: var(--paper); background: var(--brand-dark); }
+
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      grid-column: 1 / -1;
+      font-size: 0.82rem;
+    }
+
+    .check-row input {
+      width: auto;
+      margin-top: 4px;
+    }
+
+    .upload-status {
+      min-height: 1.5em;
+      margin: 2px 0 0;
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 0.84rem;
+      white-space: pre-line;
+    }
+
+    .upload-status.error { color: #8a2f2f; }
+    .upload-status.success { color: #25613e; }
+    .upload-status.working { color: var(--brand); }
+
+    .upload-result {
+      grid-column: 1 / -1;
+      padding: 18px;
+      background: var(--paper);
+      border: 1px solid var(--brand-line);
+      border-radius: 10px;
+    }
+
+    .upload-result h3 { margin: 0 0 6px; }
+    .upload-result p { margin: 0 0 14px; color: var(--muted); }
+
+    .privacy {
+      display: grid;
+      grid-template-columns: 0.65fr 2fr;
+      gap: 42px;
+      margin-top: 64px;
+      padding: 40px;
+      background: var(--wash);
+      border-radius: 16px;
+    }
+
+    .privacy h2 { margin: 0; }
+
+    .privacy-copy p {
+      margin: 0;
+      font-size: 0.96rem;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-areas:
+        "one two three"
+        "paths paths paths";
+      column-gap: 34px;
+    }
+
+    .step-one { grid-area: one; }
+    .step-two { grid-area: two; }
+    .step-three { grid-area: three; }
+
+    .step-one,
+    .step-three { padding: 20px 0 32px; }
+
+    .step-two {
+      padding: 20px 24px 32px;
+      background: var(--brand-soft);
+      border-radius: 14px 14px 0 0;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 1.05rem;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .step-link {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 8px 12px;
+      color: var(--paper);
+      background: var(--brand);
+      border-radius: 7px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .step-link:hover { color: var(--paper); background: var(--brand-dark); }
+
+    footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+      padding: 28px 0 38px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+
+    footer nav { display: flex; gap: 18px; }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 28px, 680px); }
+      header { min-height: 64px; }
+      main { padding-top: 58px; }
+      .hero { padding-bottom: 34px; }
+      h1 { font-size: clamp(2.8rem, 15vw, 4.5rem); }
+      .flow {
+        grid-template-columns: 1fr;
+        grid-template-areas: "one" "two" "paths" "three";
+        column-gap: 0;
+      }
+      .step-one,
+      .step-three { padding: 0; }
+      .step-two { margin-top: 24px; }
+      .step-three { margin-top: 24px; }
+      .paths { grid-template-columns: 1fr; padding: 12px; }
+      .path { min-height: auto; }
+      .path p { min-height: auto; }
+      .uploader { padding: 24px; }
+      .uploader-head,
+      .browser-form { grid-template-columns: 1fr; }
+      .uploader-head { gap: 12px; }
+      .field-wide,
+      .form-actions,
+      .check-row,
+      .upload-status,
+      .upload-result { grid-column: 1; }
+      .privacy { grid-template-columns: 1fr; gap: 18px; padding: 28px; }
+      footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <a class="wordmark" href="/" aria-label="NeurIPS 2026 AIDaR Workshop home">NeurIPS 2026 AIDaR Workshop</a>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <h1 id="page-title">Submit your work.</h1>
+      </section>
+
+      <section class="flow" aria-label="How AIDaRS works">
+        <div class="step step-one">
+          <strong>1. Submit your paper to OpenReview</strong>
+          <a class="step-link" href="https://openreview.net/group?id=NeurIPS.cc/2026/Workshop/AIDaR">Submit to OpenReview</a>
+        </div>
+        <div class="step step-two">
+          <strong>2. Submit your work to AIDaR</strong>
+        </div>
+        <div class="paths" aria-label="Submission options">
+          <article class="path">
+            <h3>Command line</h3>
+            <p>Run one standalone client from your terminal. It checks a temporary copy and leaves your project unchanged.</p>
+            <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit#submit">View CLI instructions</a>
+          </article>
+          <article class="path">
+            <h3>AI agent</h3>
+            <p>Give your agent the AIDaRS skill and a project path. The agent uses the same client and privacy checks.</p>
+            <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit/tree/main/skills/submit-to-aidar">View the agent skill</a>
+          </article>
+          <article class="path">
+            <h3>Browser upload</h3>
+            <p>Select a project folder and complete the same submission flow without installing a client.</p>
+            <a href="#browser-upload">Upload in browser</a>
+          </article>
+        </div>
+        <div class="step step-three">
+          <strong>3. Check and respond to your reviews</strong>
+          <p>Use the <code>aidar</code> tool to fetch and respond to reviews. <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit">Learn about the tool and system on GitHub.</a></p>
+        </div>
+      </section>
+
+      <section class="uploader" id="browser-upload" aria-labelledby="browser-title">
+        <div class="uploader-head">
+          <h2 id="browser-title">Upload in browser</h2>
+          <p>Your browser checks and packages the folder on this device. AIDaRS sends the checked archive through this service to a private GitHub repository. The service processes it in memory and does not retain the archive.</p>
+        </div>
+        <form class="browser-form" id="browser-form">
+          <div class="field">
+            <label for="openreview-url">OpenReview link</label>
+            <input id="openreview-url" name="openreview_url" type="url" inputmode="url" autocomplete="off" placeholder="https://openreview.net/forum?id=…" required>
+          </div>
+          <div class="field">
+            <label for="invitation-code">Invitation code</label>
+            <input id="invitation-code" name="invitation_code" type="password" autocomplete="off" spellcheck="false" placeholder="aidar_inv_…" required>
+          </div>
+          <div class="field field-wide">
+            <label for="project-folder">Project folder</label>
+            <input id="project-folder" name="project_folder" type="file" webkitdirectory multiple required>
+            <small>Git history, workflow files, and the local AIDaR identity file are excluded. Individual files are limited to 25 MB; browser uploads are limited to 100 MB total.</small>
+          </div>
+          <div class="field field-wide">
+            <label for="identity-terms">Names or usernames to check <span aria-hidden="true">(optional)</span></label>
+            <textarea id="identity-terms" autocomplete="off" spellcheck="false" placeholder="One author name or username per line"></textarea>
+            <small>These terms stay in this browser. AIDaRS stops the upload if it finds an identity, common secret, unsafe path, or duplicate filename.</small>
+          </div>
+          <label class="check-row" id="binary-confirm-row" hidden>
+            <input id="binary-confirm" type="checkbox">
+            <span>I reviewed the binary files. I understand that automated text checks cannot inspect their contents.</span>
+          </label>
+          <div class="form-actions">
+            <button class="secondary-button" id="check-folder" type="button">Check folder</button>
+            <button id="submit-folder" type="submit" disabled>Submit privately</button>
+          </div>
+          <p class="upload-status" id="upload-status" role="status" aria-live="polite">Select a folder, then run the local check.</p>
+          <div class="upload-result" id="upload-result" hidden></div>
+        </form>
+      </section>
+
+      <section class="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">About</h2>
+        <div class="privacy-copy">
+          <p>AIDaRS is the reviewer-anonymous submission and review system for the <a href="https://aidar-workshop.github.io/2026/">NeurIPS 2026 AI Data Readiness (AIDaR) Workshop</a> in Paris. We use it to test whether scientific work can be organized for both people and AI agents during peer review. Authors can expect local privacy checks, no retained project files on this server, versioned feedback on GitHub, and the ability to read and answer reviews with the <code>aidar</code> tool; workshop organizers and GitHub remain inside the trust boundary. <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit/raw/main/docs/AIDAR_TECHNICAL_REPORT.pdf">Read the proposal (PDF).</a></p>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <nav aria-label="Project links">
+        <a href="https://aidar-workshop.github.io/2026/">Workshop</a>
+        <a href="https://github.com/NeurIPS2026-AIDaR/submission-kit">Source</a>
+      </nav>
+    </footer>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

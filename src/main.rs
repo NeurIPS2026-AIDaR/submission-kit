@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use serde::Deserialize;
 use serde_json::Value;
 
 use aidar::api::Api;
@@ -27,8 +28,16 @@ enum Command {
         server: String,
         #[arg(long)]
         openreview: Option<String>,
+        #[arg(long, env = "AIDAR_INVITATION_CODE")]
+        invitation_code: Option<String>,
         #[arg(long)]
         submission: Option<String>,
+    },
+    /// Import the private credential downloaded after a browser submission.
+    ImportCredential {
+        receipt: PathBuf,
+        #[arg(long, default_value = ".")]
+        project: PathBuf,
     },
     /// Replace the current submission snapshot.
     Revise {
@@ -100,6 +109,47 @@ fn normalize_openreview(value: &str) -> Result<String> {
     Ok(format!("https://openreview.net/forum?id={id}"))
 }
 
+#[derive(Deserialize)]
+struct BrowserCredentialReceipt {
+    version: u8,
+    kind: String,
+    submission_id: String,
+    server: String,
+    author_token: String,
+}
+
+fn import_credential(receipt: &Path, project: &Path) -> Result<()> {
+    let value: BrowserCredentialReceipt = serde_json::from_slice(
+        &fs::read(receipt).with_context(|| format!("Cannot read {}", receipt.display()))?,
+    )
+    .context("Browser credential file is invalid")?;
+    if value.version != 1
+        || value.kind != "aidar-browser-credential"
+        || value.submission_id.len() != 12
+        || !value
+            .submission_id
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+        || !value.author_token.starts_with("aidar_sub_")
+        || value.author_token.len() > 128
+    {
+        bail!("Browser credential file is invalid");
+    }
+    Api::new(&value.server)?;
+    let project = resolve_project(project)?;
+    save_credential(
+        &value.submission_id,
+        &normalize_server(&value.server),
+        &project,
+        &value.author_token,
+    )?;
+    println!(
+        "Imported private credential for submission {}.",
+        value.submission_id
+    );
+    Ok(())
+}
+
 fn print_json(value: &Value) -> Result<()> {
     println!("{}", serde_json::to_string_pretty(value)?);
     Ok(())
@@ -114,6 +164,7 @@ fn submit(
     path: &Path,
     server: &str,
     openreview: Option<&str>,
+    invitation_code: Option<&str>,
     submission: Option<&str>,
     revision: bool,
 ) -> Result<()> {
@@ -127,7 +178,13 @@ fn submit(
     } else {
         let openreview =
             normalize_openreview(openreview.context("The OpenReview forum URL is required")?)?;
-        let registration = api.register(&openreview)?;
+        let invitation_code = invitation_code
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .context(
+                "An invitation code is required; use --invitation-code or AIDAR_INVITATION_CODE",
+            )?;
+        let registration = api.register(&openreview, invitation_code)?;
         let submission_id = registration
             .get("submission_id")
             .and_then(Value::as_str)
@@ -180,19 +237,22 @@ fn run() -> Result<()> {
             path,
             server,
             openreview,
+            invitation_code,
             submission,
         } => submit(
             &path,
             &server,
             openreview.as_deref(),
+            invitation_code.as_deref(),
             submission.as_deref(),
             false,
         ),
+        Command::ImportCredential { receipt, project } => import_credential(&receipt, &project),
         Command::Revise {
             path,
             server,
             submission,
-        } => submit(&path, &server, None, submission.as_deref(), true),
+        } => submit(&path, &server, None, None, submission.as_deref(), true),
         Command::Status {
             server,
             project,
