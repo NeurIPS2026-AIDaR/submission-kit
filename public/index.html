@@ -666,9 +666,9 @@
     }
   
     /* --- NeurIPS 2026 AIDaR workshop theme ---------------------------------
-       Aligns this page with aidar-workshop.github.io: serif type, a single
-       teal accent, and hairline outlines in place of tinted, rounded panels.
-       Purely visual: no markup, ids, classes or behaviour are changed. */
+       Aligns this page with aidar-workshop.github.io while preserving the
+       required OpenReview and optional AIDaR submission hierarchy. Purely
+       visual: no markup, ids, classes or behaviour are changed. */
     :root {
       --ink: #202124;
       --muted: #5f6368;
@@ -676,38 +676,33 @@
       --wash: #f7f8f8;
       --brand: #2f6f73;
       --brand-dark: #26595c;
-      --brand-soft: #ffffff;
-      --brand-line: #d8dadd;
-      --required: #2f6f73;
-      --required-dark: #26595c;
-      --required-soft: #ffffff;
-      --required-line: #d8dadd;
+      --brand-soft: #f1f7f7;
+      --brand-line: #c9dcde;
+      --required: #21633c;
+      --required-dark: #174b2d;
+      --required-soft: #edf8f0;
+      --required-line: #b9d9c2;
       font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     }
 
-    /* Outlines rather than rounded, tinted, shadowed cards. */
+    /* Flat, outlined landing-page surfaces retain the optional-flow grouping. */
     .step,
-    .step-one,
-    .step-label,
-    .step-link,
     .paths,
-    .path,
-    .agent-prompt,
-    .benefits li,
-    .browser-link,
-    .secondary-button,
-    .credential-panel,
-    .review-card {
+    .path {
       border-radius: 0;
+    }
+
+    .path {
       box-shadow: none;
     }
 
-    /* Labels, controls and code keep the sans and mono faces. */
+    /* Labels, controls and the upload interface keep their UI typefaces. */
     .step-label,
     .step-link,
     .benefits li,
     .browser-link,
-    .secondary-button {
+    .secondary-button,
+    .upload-dialog {
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     </style>
