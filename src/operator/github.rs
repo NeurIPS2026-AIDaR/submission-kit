@@ -1,3 +1,6 @@
+#[cfg(test)]
+#[path = "github/team_tests.rs"]
+mod team_tests;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Mutex;
 
@@ -274,6 +277,7 @@ pub struct LiveGateway {
     config: GithubConfig,
     client: Client,
     encoding_key: EncodingKey,
+    api_base: String,
 }
 
 struct CommitSpec<'a> {
@@ -298,6 +302,7 @@ impl LiveGateway {
         let encoding_key = EncodingKey::from_rsa_pem(config.private_key.as_bytes())?;
         Ok(Self {
             config,
+            api_base: API.to_string(),
             client: Client::builder()
                 .user_agent("aidar-server/0.1")
                 .redirect(reqwest::redirect::Policy::none())
@@ -347,7 +352,7 @@ impl LiveGateway {
     ) -> Result<Value> {
         let mut request = self
             .client
-            .request(method, format!("{API}{path}"))
+            .request(method, format!("{}{path}", self.api_base))
             .bearer_auth(token)
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", &self.config.api_version);
@@ -415,16 +420,15 @@ impl LiveGateway {
     }
 }
 
-#[async_trait]
-impl GithubGateway for LiveGateway {
-    fn mode(&self) -> &'static str {
-        "live"
-    }
-
-    async fn create_submission(&self, id: &str, snapshot: &Snapshot) -> Result<SubmissionResult> {
-        let token = self.installation_token().await?;
+impl LiveGateway {
+    async fn create_submission_with_token(
+        &self,
+        id: &str,
+        snapshot: &Snapshot,
+        token: &str,
+    ) -> Result<SubmissionResult> {
         let repo = format!("submission-{id}");
-        let mut settings = json!({
+        let settings = json!({
             "name": repo,
             "private": true,
             "auto_init": true,
@@ -434,12 +438,31 @@ impl GithubGateway for LiveGateway {
             "has_wiki": false,
             "has_discussions": false
         });
-        if let Some(team_id) = self.config.review_team_id {
-            settings["team_id"] = json!(team_id);
-        }
+        // Check team visibility before creating anything. Installation tokens need
+        // Members: read in addition to repository Administration: write.
+        let team_path = if let Some(team_id) = self.config.review_team_id {
+            let org = self
+                .call(
+                    token,
+                    Method::GET,
+                    &format!("/orgs/{}", self.config.org),
+                    None,
+                )
+                .await?;
+            let org_id = org["id"]
+                .as_u64()
+                .context("GitHub organization id is missing")?;
+            let path = format!("/organizations/{org_id}/team/{team_id}");
+            self.call(token, Method::GET, &path, None).await.context(
+                "Cannot read the configured review team; check the App's Members read permission",
+            )?;
+            Some(format!("{path}/repos/{}/{repo}", self.config.org))
+        } else {
+            None
+        };
         let created = self
             .call(
-                &token,
+                token,
                 Method::POST,
                 &format!("/orgs/{}/repos", self.config.org),
                 Some(settings),
@@ -451,7 +474,7 @@ impl GithubGateway for LiveGateway {
         let default_branch = required_str(&created, "default_branch")?;
         if default_branch != "main" {
             self.call(
-                &token,
+                token,
                 Method::POST,
                 &format!(
                     "/repos/{}/{repo}/branches/{default_branch}/rename",
@@ -468,9 +491,22 @@ impl GithubGateway for LiveGateway {
             Some(json!({ "enabled": false })),
         )
         .await?;
+        if let Some(path) = team_path {
+            // The repository-creation team_id field requires team-admin access
+            // and rejects installation tokens. Use the supported Teams endpoint
+            // and retain the committee's existing read-only repository role.
+            self.call(
+                token,
+                Method::PUT,
+                &path,
+                Some(json!({ "permission": "pull" })),
+            )
+            .await
+            .context("Cannot grant review-team access; no project files were sent")?;
+        }
         let initial = self
             .call(
-                &token,
+                token,
                 Method::GET,
                 &format!("/repos/{}/{repo}/branches/main", self.config.org),
                 None,
@@ -479,7 +515,7 @@ impl GithubGateway for LiveGateway {
         let initial_sha = required_nested_str(&initial, &["commit", "sha"])?;
         let initial_commit = self
             .call(
-                &token,
+                token,
                 Method::GET,
                 &format!(
                     "/repos/{}/{repo}/git/commits/{initial_sha}",
@@ -511,7 +547,7 @@ impl GithubGateway for LiveGateway {
         );
         let shell_sha = self
             .commit_tree(CommitSpec {
-                token: &token,
+                token,
                 repo: &repo,
                 parent_sha: initial_sha,
                 base_tree_sha: required_nested_str(&initial_commit, &["tree", "sha"])?,
@@ -529,7 +565,7 @@ impl GithubGateway for LiveGateway {
         .await?;
         let shell_commit = self
             .call(
-                &token,
+                token,
                 Method::GET,
                 &format!("/repos/{}/{repo}/git/commits/{shell_sha}", self.config.org),
                 None,
@@ -544,7 +580,7 @@ impl GithubGateway for LiveGateway {
         .await?;
         let head_sha = self
             .commit_tree(CommitSpec {
-                token: &token,
+                token,
                 repo: &repo,
                 parent_sha: &shell_sha,
                 base_tree_sha: required_nested_str(&shell_commit, &["tree", "sha"])?,
@@ -565,7 +601,7 @@ impl GithubGateway for LiveGateway {
         .await?;
         let pull = self
             .call(
-                &token,
+                token,
                 Method::POST,
                 &format!("/repos/{}/{repo}/pulls", self.config.org),
                 Some(json!({
@@ -584,6 +620,19 @@ impl GithubGateway for LiveGateway {
                 .context("GitHub pull request number is missing")?,
             head_sha,
         })
+    }
+}
+
+#[async_trait]
+impl GithubGateway for LiveGateway {
+    fn mode(&self) -> &'static str {
+        "live"
+    }
+
+    async fn create_submission(&self, id: &str, snapshot: &Snapshot) -> Result<SubmissionResult> {
+        let token = self.installation_token().await?;
+        self.create_submission_with_token(id, snapshot, &token)
+            .await
     }
 
     async fn revise(
